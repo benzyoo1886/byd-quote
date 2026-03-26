@@ -1122,8 +1122,8 @@ const CARS = {
   dolphin:{
     name:"BYD DOLPHIN", nameKo:"BYD 돌핀", type:"소형 해치백 EV", emoji:"🐬",
     trims:[
-      {name:"DOLPHIN",       spec:"49.92kWh / 307km / 70kW",  price:24500000},
-      {name:"DOLPHIN Active",spec:"60.48kWh / 354km / 150kW", price:29200000}
+      {name:"DOLPHIN",       spec:"49.92kWh | 상온 307km / 저온 255km | 70kW",  price:24500000},
+      {name:"DOLPHIN Active",spec:"60.48kWh | 상온 354km / 저온 282km | 150kW", price:29200000}
     ],
     colorsByTrim:[
       [{name:"샌드 화이트",hex:"#f0ede0"},{name:"스키 화이트",hex:"#e8edf2"}],
@@ -1135,8 +1135,8 @@ const CARS = {
   atto3:{
     name:"BYD ATTO 3", nameKo:"BYD 아토3", type:"소형 SUV EV", emoji:"🚗",
     trims:[
-      {name:"ATTO 3",     spec:"60.48kWh / 321km / 150kW", price:31500000},
-      {name:"ATTO 3 Plus",spec:"60.48kWh / 321km / 150kW", price:33300000}
+      {name:"ATTO 3",     spec:"60.48kWh | 상온 321km / 저온 309km | 150kW", price:31500000},
+      {name:"ATTO 3 Plus",spec:"60.48kWh | 상온 321km / 저온 309km | 150kW", price:33300000}
     ],
     colorsByTrim:[
       [{name:"코스모스 블랙",hex:"#1a1a22"},{name:"타임 그레이",hex:"#8a9aaa"},
@@ -1148,9 +1148,9 @@ const CARS = {
   seal:{
     name:"BYD SEAL", nameKo:"BYD 씰", type:"중형 세단 EV", emoji:"🦭",
     trims:[
-      {name:"SEAL RWD",  spec:"82.5kWh / 520km / RWD", price:39900000},
-      {name:"SEAL Plus", spec:"82.5kWh / 500km / RWD", price:41900000},
-      {name:"SEAL AWD",  spec:"82.5kWh / 480km / AWD", price:46900000}
+      {name:"SEAL RWD",  spec:"82.5kWh | 상온 449km / 저온 400km | RWD 230kW", price:39900000},
+      {name:"SEAL Plus", spec:"82.5kWh | 상온 449km / 저온 400km | RWD 230kW", price:41900000},
+      {name:"SEAL AWD",  spec:"82.5kWh | 상온 407km / 저온 371km | AWD 390kW", price:46900000}
     ],
     colorsByTrim:[
       [{name:"오로라 화이트",hex:"#f2f3f5"},{name:"코스모스 블랙",hex:"#1a1a22"},
@@ -1164,7 +1164,7 @@ const CARS = {
   sealion7:{
     name:"BYD SEALION 7", nameKo:"BYD 씨라이언7", type:"중형 SUV EV", emoji:"🦁",
     trims:[
-      {name:"SEALION 7",spec:"82.56kWh / 500km / RWD", price:44900000}
+      {name:"SEALION 7",spec:"82.56kWh | 상온 398km / 저온 385km | RWD 230kW", price:44900000}
     ],
     colorsByTrim:[
       [{name:"오로라 화이트",hex:"#f2f3f5"},{name:"코스모스 블랙",hex:"#1a1a22"},
@@ -1903,7 +1903,42 @@ function drawCanvasTwoCol(ctx,W,pr,car,trim,color,carImg){
 
   const leftEndY=lY;
 
-  // ── 오른쪽 컬럼: 구매방식 정보 ──
+  // ── ⚡ 절감 효과 섹션 (왼쪽 하단, 서류 아래) ──
+  lY += 10*pr;
+  const savStartY = lY;
+
+  // 헤더
+  fill('rgba(0,208,132,0.10)'); ctx.fillRect(leftX, lY, colW, 22*pr);
+  fill(G); ctx.fillRect(leftX, lY, 3*pr, 22*pr);
+  font(8.5,800); txt('⚡  가솔린 대비 전기차 절감 효과  (연 20,000km 기준)', leftX+10*pr, lY+4*pr, 8.5, G);
+  lY += 22*pr + 6*pr;
+
+  // 3칸 수치 박스
+  const sBoxW = Math.floor((colW - 12*pr) / 3);
+  const sLabels = ['연간 절감','5년 절감','10년 절감'];
+  const sVals   = ['165만원','825만원','1,650만원'];
+  for(let i=0;i<3;i++){
+    const bx = leftX + i*(sBoxW+6*pr);
+    fill('rgba(0,208,132,0.08)'); ctx.fillRect(bx, lY, sBoxW, 36*pr);
+    ctx.strokeStyle='rgba(0,208,132,0.2)'; ctx.lineWidth=0.8*pr;
+    ctx.strokeRect(bx, lY, sBoxW, 36*pr);
+    font(7,400); txt(sLabels[i], bx+4*pr, lY+4*pr, 7, DIM);
+    font(11,900); txtR(sVals[i], bx+sBoxW-4*pr, lY+16*pr, 11, G);
+  }
+  lY += 36*pr + 6*pr;
+
+  // 기준 주석
+  font(7,400); txt('휘발유 1,700원 · 급속충전 347원/kWh · 가솔린 1,600cc 연비 12km/L · 전비 4.5km/kWh', leftX+4*pr, lY, 7, MUTED);
+  lY += 13*pr;
+  font(7,700); txt('※ 가장 보수적 조건 기준 — 실제 사용 시 연 200~280만원 절감이 일반적', leftX+4*pr, lY, 7, '#3a6050');
+  lY += 14*pr;
+
+  // 박스 테두리
+  ctx.strokeStyle='rgba(0,208,132,0.15)'; ctx.lineWidth=pr;
+  ctx.strokeRect(leftX, savStartY-2*pr, colW, lY-savStartY+2*pr);
+
+  const leftFinalY = lY;
+
   let rY=bodyStartY;
   const mode=S.payMode;
   const modeLabel=mode==='installment'?'할부':mode==='lease'?'리스':'장기렌트';
@@ -1999,11 +2034,11 @@ function drawCanvasTwoCol(ctx,W,pr,car,trim,color,carImg){
     }
   }
 
-  return Math.max(leftEndY, rY)+pad;
+  return Math.max(leftFinalY, rY)+pad;
 }
 
-
 function drawCanvas(ctx,W,pr,car,trim,color,lines,carImg){
+  // ── 오른쪽 컬럼: 구매방식 정보 ──
   const pad=28*pr, cw=W-pad*2;
   let y=0;
   const BG='#080c10',S1='#0e1318',S2='#141a22',BORDER='#1e2a3a';
@@ -2263,6 +2298,42 @@ function drawCanvas(ctx,W,pr,car,trim,color,lines,carImg){
   ctx.fillRect(pad, docsStartY-6*pr, cw, y-docsStartY+6*pr);
   ctx.strokeStyle='rgba(176,106,255,0.2)'; ctx.lineWidth=pr;
   ctx.strokeRect(pad, docsStartY-6*pr, cw, y-docsStartY+6*pr);
+
+  y += pad;
+
+  // ── ⚡ 절감 효과 섹션 ──
+  const savY = y;
+
+  // 헤더
+  fill('rgba(0,208,132,0.10)'); ctx.fillRect(pad, y, cw, 24*pr);
+  fill(G); ctx.fillRect(pad, y, 3*pr, 24*pr);
+  font(9,800); txt('⚡  가솔린 대비 전기차 절감 효과  (연 20,000km 기준)', pad+10*pr, y+5*pr, 9, G);
+  y += 24*pr + 8*pr;
+
+  // 3칸 수치 박스
+  const sW3 = Math.floor((cw - 16*pr) / 3);
+  const sL3 = ['연간 절감','5년 절감','10년 절감'];
+  const sV3 = ['165만원','825만원','1,650만원'];
+  for(let i=0;i<3;i++){
+    const bx3 = pad + i*(sW3+8*pr);
+    fill('rgba(0,208,132,0.08)'); ctx.fillRect(bx3, y, sW3, 42*pr);
+    ctx.strokeStyle='rgba(0,208,132,0.2)'; ctx.lineWidth=0.8*pr;
+    ctx.strokeRect(bx3, y, sW3, 42*pr);
+    font(8,400); txt(sL3[i], bx3+6*pr, y+5*pr, 8, DIM);
+    font(14,900); txtR(sV3[i], bx3+sW3-6*pr, y+20*pr, 14, G);
+  }
+  y += 42*pr + 8*pr;
+
+  // 기준 주석
+  font(7.5,400); txt('휘발유 1,700원 · 급속충전 347원/kWh · 가솔린 1,600cc 연비 12km/L · 전비 4.5km/kWh', pad+4*pr, y, 7.5, MUTED);
+  y += 14*pr;
+  font(7.5,700); txt('※ 가장 보수적 조건 기준 — 실제 사용 시 연 200~280만원 절감이 일반적', pad+4*pr, y, 7.5, '#3a6050');
+  y += 14*pr;
+
+  // 섹션 테두리
+  fill('rgba(0,208,132,0.04)'); ctx.fillRect(pad, savY-2*pr, cw, y-savY+2*pr);
+  ctx.strokeStyle='rgba(0,208,132,0.2)'; ctx.lineWidth=pr;
+  ctx.strokeRect(pad, savY-2*pr, cw, y-savY+2*pr);
 
   y += pad;
   return y;
