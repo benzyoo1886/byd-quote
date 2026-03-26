@@ -1721,28 +1721,38 @@ async function renderToCanvas(){
   const color=colors[S.colorIdx]||colors[0];
   const pr=2;
 
+  // 차량 이미지 로드
+  const carImg = await new Promise(resolve=>{
+    const src = CAR_IMGS[S.carKey];
+    if(!src){ resolve(null); return; }
+    const img = new Image();
+    img.onload = ()=>resolve(img);
+    img.onerror = ()=>resolve(null);
+    img.src = src;
+  });
+
   // 현금: 단일 컬럼 (480px)
-  // 할부/리스/렌트: 2컬럼 A4 비율 (794px)
+  // 할부/리스/렌트: 2컬럼 A4 비율 (900px)
   const isFinance = S.payMode!=='cash';
   const W = isFinance ? 900*pr : 480*pr;
 
   const tmp=document.createElement('canvas');tmp.width=W;tmp.height=8000*pr;
   const tc=tmp.getContext('2d');
   const h = isFinance
-    ? drawCanvasTwoCol(tc,W,pr,car,trim,color)
-    : drawCanvas(tc,W,pr,car,trim,color,buildQuoteLines());
+    ? drawCanvasTwoCol(tc,W,pr,car,trim,color,carImg)
+    : drawCanvas(tc,W,pr,car,trim,color,buildQuoteLines(),carImg);
 
   const canvas=document.createElement('canvas');
   canvas.width=W; canvas.height=Math.ceil(h)+30*pr;
   const ctx=canvas.getContext('2d');
   isFinance
-    ? drawCanvasTwoCol(ctx,W,pr,car,trim,color)
-    : drawCanvas(ctx,W,pr,car,trim,color,buildQuoteLines());
+    ? drawCanvasTwoCol(ctx,W,pr,car,trim,color,carImg)
+    : drawCanvas(ctx,W,pr,car,trim,color,buildQuoteLines(),carImg);
   return canvas;
 }
 
 // ── 2컬럼 렌더러 (할부/리스/렌트) ────────────────────────────────────
-function drawCanvasTwoCol(ctx,W,pr,car,trim,color){
+function drawCanvasTwoCol(ctx,W,pr,car,trim,color,carImg){
   const BG='#080c10',S1='#0e1318',S2='#141a22',BORDER='#1e2a3a';
   const G='#00d084',RED='#ff4d6a',YELLOW='#ffbe3d',BLUE='#3d9eff',DIM='#5a7090',MUTED='#2a3a50',PURPLE='#b06aff';
   const pad=24*pr, gap=16*pr;
@@ -1758,24 +1768,46 @@ function drawCanvasTwoCol(ctx,W,pr,car,trim,color){
   const txtR=(t,x,yy,sz,c)=>{fill(c||'#eef2f8');ctx.textAlign='right';ctx.fillText(String(t),x,yy+Math.round(sz*pr*0.78));ctx.textAlign='left';};
   const hlineCol=(x1,x2,yy,c,thick)=>{ctx.strokeStyle=c||BORDER;ctx.lineWidth=(thick||0.5)*pr;ctx.beginPath();ctx.moveTo(x1,yy);ctx.lineTo(x2,yy);ctx.stroke();};
 
-  // ── 헤더 ──
-  const hdrH=68*pr;
-  fill(S1); ctx.fillRect(0,0,W,hdrH);
-  font(22,900,'Orbitron,sans-serif'); txt('BYD',pad,10*pr,22,G);
-  font(9,400); txt('DEALER ESTIMATE',pad,38*pr,9,DIM);
+  // ── 차량 이미지 히어로 ──
+  const heroH = 160*pr;
+  if(carImg){
+    // 이미지 그리기 (가득 채우기, object-fit:cover 방식)
+    const iw=carImg.naturalWidth||carImg.width, ih=carImg.naturalHeight||carImg.height;
+    const scale=Math.max(W/iw, heroH/ih);
+    const sw=iw*scale, sh=ih*scale;
+    const sx=(W-sw)/2, sy=(heroH-sh)/2;
+    ctx.drawImage(carImg, sx, sy, sw, sh);
+    // 상단 다크 오버레이 (텍스트 가독성)
+    const grad=ctx.createLinearGradient(0,0,0,heroH);
+    grad.addColorStop(0,'rgba(8,12,16,0.55)');
+    grad.addColorStop(0.5,'rgba(8,12,16,0.25)');
+    grad.addColorStop(1,'rgba(8,12,16,0.85)');
+    ctx.fillStyle=grad; ctx.fillRect(0,0,W,heroH);
+    // 좌측 어두운 그라디언트
+    const gradL=ctx.createLinearGradient(0,0,W*0.45,0);
+    gradL.addColorStop(0,'rgba(8,12,16,0.7)');
+    gradL.addColorStop(1,'rgba(8,12,16,0)');
+    ctx.fillStyle=gradL; ctx.fillRect(0,0,W,heroH);
+  } else {
+    fill(S1); ctx.fillRect(0,0,W,heroH);
+  }
+
+  // ── 히어로 위에 BYD 로고 + 날짜 ──
+  font(22,900,'Orbitron,sans-serif'); txt('BYD',pad,16*pr,22,G);
+  font(9,400); txt('DEALER ESTIMATE',pad,38*pr,9,'rgba(255,255,255,0.6)');
   const now=new Date();
   const ds=`출력일: ${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')}`;
-  font(10,700); txtR(ds,W-pad,10*pr,10,'#eef2f8');
-  font(9,400);  txtR('딜러 전용 견적서',W-pad,28*pr,9,DIM);
+  font(10,700); txtR(ds,W-pad,16*pr,10,'#eef2f8');
+  font(9,400);  txtR('딜러 전용 견적서',W-pad,32*pr,9,'rgba(255,255,255,0.5)');
 
-  let y=hdrH+4*pr;
-  fill(G); ctx.fillRect(pad,y,W-pad*2,2*pr); y+=14*pr;
+  // ── 히어로 하단 차량명 ──
+  font(20,900); txt(car.name,pad,heroH-36*pr,20,'#ffffff');
+  font(9,400);  txt(trim.name+' · '+trim.spec,pad,heroH-16*pr,9,'rgba(255,255,255,0.7)');
 
-  // ── 차량명 ──
-  font(17,900); txt(car.name,pad,y,17,'#ffffff'); y+=24*pr;
-  font(9,400);  txt(trim.name+' · '+trim.spec,pad,y,9,DIM); y+=16*pr;
-  font(8.5,400);txt('색상: '+color.name,pad,y,8.5,MUTED); y+=14*pr;
-  hlineCol(pad,W-pad,y,BORDER,0.5); y+=14*pr;
+  // 히어로 하단 그린 라인
+  fill(G); ctx.fillRect(0,heroH,W,2.5*pr);
+
+  let y=heroH+18*pr;
 
   const bodyStartY=y;
 
@@ -1971,16 +2003,14 @@ function drawCanvasTwoCol(ctx,W,pr,car,trim,color){
 }
 
 
-function drawCanvas(ctx,W,pr,car,trim,color,lines){
+function drawCanvas(ctx,W,pr,car,trim,color,lines,carImg){
   const pad=28*pr, cw=W-pad*2;
-  let y=pad;
+  let y=0;
   const BG='#080c10',S1='#0e1318',S2='#141a22',BORDER='#1e2a3a';
   const G='#00d084',RED='#ff4d6a',YELLOW='#ffbe3d',BLUE='#3d9eff',DIM='#5a7090',MUTED='#2a3a50';
 
-  // 폰트 설정 - baseline을 항상 'alphabetic'으로 고정
   ctx.textBaseline = 'alphabetic';
 
-  // 헬퍼
   const fill = c => ctx.fillStyle = c;
   const rect = (x,yy,w,h,c) => { fill(c); ctx.fillRect(x,yy,w,h); };
   const hline = (yy,c,thick) => {
@@ -2008,41 +2038,49 @@ function drawCanvas(ctx,W,pr,car,trim,color,lines){
   // ── 배경 전체 ──
   rect(0,0,W,20000,BG);
 
-  // ── 헤더 박스 ──
-  const hdrH = 68*pr;
-  rect(0,0,W,hdrH,S1);
+  // ── 차량 이미지 히어로 ──
+  const heroH = 180*pr;
+  if(carImg){
+    const iw=carImg.naturalWidth||carImg.width, ih=carImg.naturalHeight||carImg.height;
+    const scale=Math.max(W/iw, heroH/ih);
+    const sw=iw*scale, sh=ih*scale;
+    const sx=(W-sw)/2, sy=(heroH-sh)/2;
+    ctx.drawImage(carImg, sx, sy, sw, sh);
+    // 그라디언트 오버레이
+    const grad=ctx.createLinearGradient(0,0,0,heroH);
+    grad.addColorStop(0,'rgba(8,12,16,0.5)');
+    grad.addColorStop(0.45,'rgba(8,12,16,0.15)');
+    grad.addColorStop(1,'rgba(8,12,16,0.88)');
+    ctx.fillStyle=grad; ctx.fillRect(0,0,W,heroH);
+    // 좌측 그라디언트
+    const gradL=ctx.createLinearGradient(0,0,W*0.5,0);
+    gradL.addColorStop(0,'rgba(8,12,16,0.65)');
+    gradL.addColorStop(1,'rgba(8,12,16,0)');
+    ctx.fillStyle=gradL; ctx.fillRect(0,0,W,heroH);
+  } else {
+    rect(0,0,W,heroH,S1);
+  }
 
-  // BYD 로고
-  font(22,900,'Orbitron,sans-serif');
-  txt('BYD', pad, 10*pr, 22, G);
+  // ── 히어로 위 BYD 로고 + 날짜 ──
+  const txt0=(t,x,yy,sz,c)=>{fill(c||'#eef2f8');ctx.textAlign='left';ctx.fillText(String(t),x,yy+Math.round(sz*pr*0.78));};
+  const txtR0=(t,x,yy,sz,c)=>{fill(c||'#eef2f8');ctx.textAlign='right';ctx.fillText(String(t),x,yy+Math.round(sz*pr*0.78));ctx.textAlign='left';};
+  const font0=(sz,wt,fam)=>{ctx.font=`${wt||400} ${Math.round(sz*pr)}px ${fam||"'Noto Sans KR',sans-serif"}`;};
 
-  font(9,400);
-  txt('DEALER ESTIMATE', pad, 38*pr, 9, DIM);
-
-  // 날짜
+  font0(20,900,'Orbitron,sans-serif'); txt0('BYD',pad,12*pr,20,G);
+  font0(8,400); txt0('DEALER ESTIMATE',pad,36*pr,8,'rgba(255,255,255,0.65)');
   const now=new Date();
   const ds=`출력일: ${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')}`;
-  font(10,700);
-  txtR(ds, W-pad, 10*pr, 10, '#eef2f8');
-  font(9,400);
-  txtR('딜러 전용 견적서', W-pad, 28*pr, 9, DIM);
+  font0(9,700); txtR0(ds,W-pad,14*pr,9,'#eef2f8');
+  font0(8,400); txtR0('딜러 전용 견적서',W-pad,30*pr,8,'rgba(255,255,255,0.5)');
 
-  y = hdrH + 4*pr;
+  // ── 히어로 하단 차량명 ──
+  font0(17,900); txt0(car.name,pad,heroH-38*pr,17,'#ffffff');
+  font0(8.5,400); txt0(trim.name+' · '+trim.spec+' | 색상: '+color.name,pad,heroH-16*pr,8.5,'rgba(255,255,255,0.65)');
 
-  // 그린 구분선
-  fill(G); ctx.fillRect(pad, y, cw, 2*pr); y += 14*pr;
+  // 히어로 하단 그린 라인
+  fill(G); ctx.fillRect(0,heroH,W,2.5*pr);
 
-  // ── 차량명 ──
-  font(18,900);
-  txt(car.name, pad, y, 18, '#ffffff'); y += 26*pr;
-
-  font(10,400);
-  txt(trim.name + ' · ' + trim.spec, pad, y, 10, DIM); y += 18*pr;
-
-  font(9,400);
-  txt('색상: ' + color.name, pad, y, 9, MUTED); y += 16*pr;
-
-  hline(y, BORDER, 0.5); y += 16*pr;
+  y = heroH + pad;
 
   // ── 항목 라인들 ──
   const LINE_H = 28*pr;   // 일반 항목 높이
