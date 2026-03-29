@@ -36,7 +36,8 @@
   --r2:10px;
 }
 
-html,body{
+html,body{overflow-x:hidden;}
+body{
   font-family:'Noto Sans KR',sans-serif;
   background:var(--bg);color:var(--text);
   min-height:100vh;
@@ -785,15 +786,15 @@ input:-webkit-autofill{ -webkit-box-shadow:0 0 0 1000px var(--s2) inset; -webkit
       </div>
       <div class="fg">
         <div class="fl">국고 보조금</div>
-        <div class="fr"><input class="fi" id="subNat" type="number" min="0" placeholder="0" oninput="onSubChange()"><span class="funit">만원</span></div>
+        <div class="fr"><input class="fi" id="subNat" type="text" inputmode="decimal" placeholder="0" oninput="onSubChange()"><span class="funit">만원</span></div>
       </div>
       <div class="fg">
         <div class="fl">지방비 (지자체)</div>
-        <div class="fr"><input class="fi" id="subLoc" type="number" min="0" placeholder="0" oninput="onSubChange()"><span class="funit">만원</span></div>
+        <div class="fr"><input class="fi" id="subLoc" type="text" inputmode="decimal" placeholder="0" oninput="onSubChange()"><span class="funit">만원</span></div>
       </div>
       <div class="fg">
         <div class="fl">총 보조금 합계</div>
-        <div class="fr"><input class="fi" id="subTotal" type="number" min="0" placeholder="자동계산" style="background:var(--gdim2);border-color:rgba(0,208,132,0.2);" oninput="calc()"><span class="funit">만원</span></div>
+        <div class="fr"><input class="fi" id="subTotal" type="text" inputmode="decimal" placeholder="자동계산" style="background:var(--gdim2);border-color:rgba(0,208,132,0.2);" oninput="calc()"><span class="funit">만원</span></div>
       </div>
     </div>
     <div class="fl" style="margin-bottom:10px;">추가 보조금 <span class="tag">해당 시 선택</span></div>
@@ -807,7 +808,7 @@ input:-webkit-autofill{ -webkit-box-shadow:0 0 0 1000px var(--s2) inset; -webkit
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:6px;">
-        <input class="fi" id="subConv" type="number" min="0" placeholder="금액"
+        <input class="fi" id="subConv" type="text" inputmode="decimal" placeholder="금액"
           style="width:72px;text-align:right;padding:5px 7px;font-size:12px;"
           onclick="event.stopPropagation()"
           oninput="event.stopPropagation();onSubChange()">
@@ -848,10 +849,20 @@ input:-webkit-autofill{ -webkit-box-shadow:0 0 0 1000px var(--s2) inset; -webkit
             <div class="bond-row">
               <button class="bond-btn active" id="bond-exempt" onclick="setBond('exempt',this)">면제</button>
               <button class="bond-btn" id="bond-auto" onclick="setBond('auto',this)">자동계산</button>
-              <button class="bond-btn" id="bond-manual" onclick="setBond('manual',this)">직접입력</button>
             </div>
-            <div id="bondManualWrap" style="display:none;margin-top:8px;">
-              <div class="fr"><input class="fi" id="bondCost" type="text" inputmode="numeric" placeholder="0" oninput="moneyInput(this,calc)"><span class="funit">원</span></div>
+            <!-- 자동계산: 할인율 입력 -->
+            <div id="bondAutoWrap" style="display:none;margin-top:8px;">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <span style="font-size:11px;color:var(--dim);flex:1;">공채 할인율 <span style="color:var(--g);font-weight:600;">자동표시</span> · 수기입력 가능</span>
+                <div class="fr" style="gap:4px;">
+                  <input class="fi" id="bondDiscountInput" type="text" inputmode="decimal"
+                    placeholder="5.0" value="5"
+                    style="width:70px;text-align:center;font-size:15px;font-weight:700;"
+                    oninput="calc()">
+                  <span class="funit">%</span>
+                </div>
+              </div>
+              <div class="fn" id="bondAutoDetail" style="margin-top:4px;line-height:1.6;"></div>
             </div>
             <div class="fn" id="bondNote">공채 면제 적용</div>
           </div>
@@ -971,28 +982,37 @@ input:-webkit-autofill{ -webkit-box-shadow:0 0 0 1000px var(--s2) inset; -webkit
 
         <!-- 초기비용 요약 -->
         <div class="fg full" id="instCostSummaryBox" style="background:rgba(255,190,61,0.07);border:1px solid rgba(255,190,61,0.2);border-radius:10px;padding:12px 14px;">
-          <div class="fl" style="color:var(--yellow);font-weight:700;margin-bottom:8px;">💰 초기 현금 납부 총합 <span style="font-size:9px;font-weight:400;color:var(--dim);">(계약금 30만원 포함)</span></div>
+          <div class="fl" style="color:var(--yellow);font-weight:700;margin-bottom:10px;">💰 초기 현금 납부 안내</div>
           <div style="display:flex;flex-direction:column;gap:5px;">
-            <div style="display:flex;justify-content:space-between;font-size:11px;" id="isum-down-row">
-              <span id="isum-down-label" style="color:var(--dim);">선수금</span>
+
+            <!-- 1. 선수금 -->
+            <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:11px;">
+              <span style="color:var(--dim);">1. 선수금 <span id="isum-down-pct" style="font-size:10px;color:var(--g);font-weight:700;"></span> <span style="font-size:9px;color:var(--dim);">(할부원금 차감)</span></span>
               <span id="isum-down" style="font-weight:700;color:var(--yellow);">–</span>
             </div>
-            <div style="display:flex;justify-content:space-between;font-size:11px;" id="isum-reg-row">
-              <span style="color:var(--dim);">등록비용 (취등록세+공채)</span>
-              <span id="isum-reg" style="font-weight:600;color:var(--yellow);">–</span>
+            <!-- └ 계약금 (선수금 있을 때 서브, 없을 때 별도) -->
+            <div id="isum-deposit-row" style="display:flex;justify-content:space-between;font-size:10px;padding-left:10px;">
+              <span style="color:var(--dim);" id="isum-deposit-label">└ 계약금 (계약 시 납부)</span>
+              <span id="isum-deposit" style="color:var(--dim);">–</span>
             </div>
-            <div style="display:flex;justify-content:space-between;font-size:11px;" id="isum-misc-row">
-              <span style="color:var(--dim);">부대비용 (탁송료 포함)</span>
-              <span id="isum-misc" style="font-weight:600;color:var(--yellow);">–</span>
+
+            <div style="border-top:1px dashed rgba(255,190,61,0.2);"></div>
+
+            <!-- 2. 취등록세+부대비용 -->
+            <div style="display:flex;justify-content:space-between;font-size:11px;padding-top:4px;">
+              <span style="color:var(--dim);">2. 취등록세+공채 / 부대비용 <span style="font-size:9px;">(현금 별도)</span></span>
+              <span id="isum-reg-misc" style="font-weight:700;color:var(--yellow);">–</span>
             </div>
-            <div style="display:flex;justify-content:space-between;font-size:12px;border-top:1px solid rgba(255,190,61,0.3);margin-top:4px;padding-top:6px;">
-              <span style="color:var(--yellow);font-weight:700;">초기납부 합계</span>
-              <span id="isum-total" style="font-weight:900;color:var(--yellow);font-size:14px;">–</span>
+
+            <!-- 초기비용 합계 -->
+            <div style="display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid rgba(255,190,61,0.35);margin-top:4px;padding-top:8px;">
+              <div>
+                <span style="color:var(--yellow);font-weight:700;font-size:12px;">초기비용 합계 (1+2)</span>
+                <div style="font-size:9px;color:var(--dim);margin-top:1px;">(계약금 포함)</div>
+              </div>
+              <span id="isum-grand" style="font-weight:900;color:var(--g);font-size:16px;">–</span>
             </div>
-            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--dim);margin-top:2px;padding-top:4px;border-top:1px dashed rgba(255,255,255,0.06);">
-              <span>+ 계약금 (차후 정산)</span>
-              <span id="isum-deposit">–</span>
-            </div>
+
           </div>
         </div>
 
@@ -1054,8 +1074,8 @@ input:-webkit-autofill{ -webkit-box-shadow:0 0 0 1000px var(--s2) inset; -webkit
       <div class="grid2">
         <div class="fg"><div class="fl">선납금</div><div class="fr"><input class="fi" id="leaseDeposit" type="text" inputmode="numeric" placeholder="0" oninput="moneyInput(this,calc)"><span class="funit">원</span></div></div>
         <div class="fg"><div class="fl">리스 기간</div><select class="fi" id="leaseMonth" onchange="calc()"><option value="24">24개월</option><option value="36" selected>36개월</option><option value="48">48개월</option><option value="60">60개월</option></select></div>
-        <div class="fg"><div class="fl">리스 금리 (연%)</div><div class="fr"><input class="fi" style="width:90px;" id="leaseRate" type="number" step="0.1" value="4.5" oninput="calc()"><span class="funit">%</span></div></div>
-        <div class="fg"><div class="fl">잔존가치율</div><div class="fr"><input class="fi" style="width:90px;" id="leaseResidual" type="number" value="30" oninput="calc()"><span class="funit">%</span></div></div>
+        <div class="fg"><div class="fl">리스 금리 (연%)</div><div class="fr"><input class="fi" style="width:90px;" id="leaseRate" type="text" inputmode="decimal" value="4.5" oninput="calc()"><span class="funit">%</span></div></div>
+        <div class="fg"><div class="fl">잔존가치율</div><div class="fr"><input class="fi" style="width:90px;" id="leaseResidual" type="text" inputmode="decimal" value="30" oninput="calc()"><span class="funit">%</span></div></div>
       </div>
     </div>
 
@@ -1093,14 +1113,20 @@ input:-webkit-autofill{ -webkit-box-shadow:0 0 0 1000px var(--s2) inset; -webkit
     <div class="q-line"><span class="ql">차량가 (VAT포함)</span><span class="qv" id="qCarPrice">–</span></div>
 
     <div class="q-sec">보조금 차감</div>
-    <div class="q-line"><span class="ql">국고 보조금</span><span class="qv red" id="qSubNat">–</span></div>
-    <div class="q-line"><span class="ql">지방비</span><span class="qv red" id="qSubLoc">–</span></div>
-    <div class="q-line" id="qConvRow" style="display:none"><span class="ql">전환지원금</span><span class="qv red" id="qSubConv">–</span></div>
-    <div class="q-line" id="qC2Row" style="display:none"><span class="ql">다자녀 (2명)</span><span class="qv red">-1,000,000원</span></div>
-    <div class="q-line" id="qC3Row" style="display:none"><span class="ql">다자녀 (3명+)</span><span class="qv red">-2,000,000원</span></div>
-    <div class="q-line" id="qFstRow" style="display:none"><span class="ql">생애 첫차</span><span class="qv red" id="qSubFst">–</span></div>
+    <!-- 총 보조금 합계 먼저 -->
+    <div class="q-line">
+      <span class="ql" style="font-weight:700;">총 보조금</span>
+      <span class="qv red" id="qSubTotal">–</span>
+    </div>
+    <!-- 세부항목 -->
+    <div class="q-line" style="padding-left:8px;"><span class="ql" style="color:var(--dim);font-size:10px;">└ 국고 보조금</span><span class="qv red" id="qSubNat" style="font-size:10px;">–</span></div>
+    <div class="q-line" style="padding-left:8px;"><span class="ql" style="color:var(--dim);font-size:10px;">└ 지방비</span><span class="qv red" id="qSubLoc" style="font-size:10px;">–</span></div>
+    <div class="q-line" id="qConvRow" style="display:none;padding-left:8px;"><span class="ql" style="color:var(--dim);font-size:10px;">└ 전환지원금</span><span class="qv red" id="qSubConv" style="font-size:10px;">–</span></div>
+    <div class="q-line" id="qC2Row" style="display:none;padding-left:8px;"><span class="ql" style="color:var(--dim);font-size:10px;">└ 다자녀 (2명)</span><span class="qv red" style="font-size:10px;">-1,000,000원</span></div>
+    <div class="q-line" id="qC3Row" style="display:none;padding-left:8px;"><span class="ql" style="color:var(--dim);font-size:10px;">└ 다자녀 (3명+)</span><span class="qv red" style="font-size:10px;">-2,000,000원</span></div>
+    <div class="q-line" id="qFstRow" style="display:none;padding-left:8px;"><span class="ql" style="color:var(--dim);font-size:10px;">└ 생애 첫차</span><span class="qv red" id="qSubFst" style="font-size:10px;">–</span></div>
 
-    <div class="q-sub"><span class="ql">실 차량 구매가</span><span class="qv" id="qNetCar">–</span></div>
+    <div class="q-sub"><span class="ql">실 차량 구매가 (순차량가)</span><span class="qv" id="qNetCar">–</span></div>
 
     <div class="q-sec">등록비용</div>
     <div class="q-line"><span class="ql">취등록세 (감면 전)</span><span class="qv strike" id="qAcqBefore">–</span></div>
@@ -1203,6 +1229,15 @@ input:-webkit-autofill{ -webkit-box-shadow:0 0 0 1000px var(--s2) inset; -webkit
 <div id="toast"></div>
 
 <script>
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║          ★ 수정 전용 구역 — 여기만 고치면 됩니다 ★              ║
+// ╠══════════════════════════════════════════════════════════════════╣
+// ║  차량 추가/삭제, 가격 변경, 보조금 업데이트, 비용 변경 시        ║
+// ║  이 구역만 수정하세요. 아래 코드는 건드리지 않아도 됩니다.       ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+// ── 1. 차량 정보 (가격 변경 시 price 숫자만 수정) ─────────────────
 const CARS = {
   dolphin:{
     name:"BYD DOLPHIN", nameKo:"BYD 돌핀", type:"소형 해치백 EV", emoji:"🐬",
@@ -1258,10 +1293,8 @@ const CARS = {
   }
 };
 
-// ─────────────────────────────────────────────────────────────
-// 보조금 DB  2026년 기준  [국고, 지방비, 전환지원금]  단위: 원
-// 서울/인천/김포 → 자동입력 | 나머지 → 국고만 자동, 지방비 수기
-// ─────────────────────────────────────────────────────────────
+// ── 2. 지역별 보조금 DB (단위: 원) ────────────────────────────────
+// 순서: [국고보조금, 지방비, 전환지원금]
 const SUBSIDY_DB = {
   // ── 서울 ──────────────────────────────────────────────────
   "서울":{
@@ -1298,6 +1331,23 @@ const SUBSIDY_DB = {
   }
 };
 
+// ── 3. 비용 기준값 (변경 시 숫자만 수정) ─────────────────────────
+const CONFIG = {
+  EV_ACQ_REDUCE:  1400000,   // 전기차 취등록세 감면액 (현재 140만원)
+  DEFAULT_DEPOSIT: 300000,   // 기본 계약금
+  PLATE_COST:       78500,   // 번호판 비용
+  DELIVERY_COST:    84150,   // 탁송료
+  // 전기차 절감 효과 표시값
+  SAVE_YEAR:   '165만원',
+  SAVE_5Y:     '825만원',
+  SAVE_10Y:  '1,650만원',
+  SAVE_NOTE: '기준: 휘발유 1,700원 · 급속충전 347원/kWh · 가솔린 12km/L · 전비 4.5km/kWh'
+};
+
+// ══════════════════════════════════════════════════════════════════
+// ▼ 아래는 로직 코드입니다. 수정하지 마세요.
+// ══════════════════════════════════════════════════════════════════
+
 // ─────────────────────────────────────────────────────────────
 // 국고보조금 기본값 DB  2026년 확정  단위: 원
 // 지역 선택 시 국고만 자동입력 (지방비는 수기)
@@ -1313,13 +1363,55 @@ const NAT_SUBSIDY = {
   sealion7_0: 1520000   // SEALION 7
 };
 
-// 공채 지역별 비율 (차량가 대비 %)
-const BOND_RATE = {
-  "서울":0.04,"인천":0.04,"김포":0.04,"부산":0.02,"대구":0.02,
-  "광주":0.02,"대전":0.02,"울산":0.02,"세종":0.02,"경기기타":0.05,
-  "강원":0.01,"충북":0.01,"충남":0.01,"전북":0.01,"전남":0.01,
-  "경북":0.01,"경남":0.01,"제주":0.01
+// ── 공채 지역별/차종별 매입 요율 (%) ──
+// 차종 분류: dolphin = 세단, atto3 = SUV, seal = 세단, sealion7 = SUV
+const BOND_RATE_TABLE = {
+  '서울':   {sedan:0.12, suv:0.05},
+  '부산':   {sedan:0.00, suv:0.04},
+  '대구':   {sedan:0.00, suv:0.00},
+  '인천':   {sedan:0.00, suv:0.00},
+  '김포':   {sedan:0.00, suv:0.00},
+  '광주':   {sedan:0.04, suv:0.04},
+  '대전':   {sedan:0.04, suv:0.04},
+  '울산':   {sedan:0.08, suv:0.04},
+  '세종':   {sedan:0.04, suv:0.04},
+  '경기':   {sedan:0.00, suv:0.00},
+  '경기기타':{sedan:0.00, suv:0.00},
+  '강원':   {sedan:0.06, suv:0.04},
+  '충북':   {sedan:0.06, suv:0.04},
+  '충남':   {sedan:0.04, suv:0.04},
+  '전북':   {sedan:0.04, suv:0.04},
+  '전남':   {sedan:0.06, suv:0.04},
+  '경북':   {sedan:0.08, suv:0.04},
+  '경남':   {sedan:0.04, suv:0.00},
+  '제주':   {sedan:0.04, suv:0.04},
 };
+// 전기차 공채 감면 한도
+const BOND_EV_EXEMPT = 2500000;
+// 공채 할인율 기본값 (%)
+let bondDiscountPct = 5;
+
+// 차종 키 → SUV 여부
+function isCarSUV(carKey){
+  return carKey==='atto3' || carKey==='sealion7';
+}
+
+// 공채 자동계산: 공급가액 기준
+function calcBondAuto(){
+  if(!S.carKey) return 0;
+  const region = $('regionSel').value;
+  const rates  = BOND_RATE_TABLE[region];
+  if(!rates) return 0;
+  const carPrice = CARS[S.carKey].trims[S.trimIdx].price;
+  const supplyPrice = Math.round(carPrice / 1.1); // VAT 제외 공급가액
+  const rate = isCarSUV(S.carKey) ? rates.suv : rates.sedan;
+  if(rate === 0) return 0;
+  const initial   = Math.round(supplyPrice * rate);
+  const afterExempt = Math.max(0, initial - BOND_EV_EXEMPT);
+  const discPct   = parseFloat($('bondDiscountInput')?.value) || bondDiscountPct;
+  const customer  = Math.round(afterExempt * discPct / 100);
+  return customer;
+}
 
 // ── 상태 ──
 let S={carKey:null,trimIdx:0,colorIdx:0,payMode:'cash'};
@@ -1424,6 +1516,9 @@ function selectCar(key,el){
   el.classList.add('active');
   S.carKey=key;S.trimIdx=0;S.colorIdx=0;
   acqManual=false;$('acqTaxInput').value='';
+  // 차량 변경 시 할부원금 직접입력 초기화
+  const pEl=$('instPrincipalDirect');if(pEl)pEl.value='';
+  const pNote=$('instPrincipalNote');if(pNote)pNote.style.color='';
   // 히어로 이미지 설정
   const src=CAR_IMGS[key]||'';
   // 차종별 object-position (차량이 잘 보이는 위치)
@@ -1444,7 +1539,7 @@ function renderTrims(){
   car.trims.forEach((t,i)=>{
     const d=document.createElement('div');d.className='trim-item'+(i===S.trimIdx?' active':'');
     d.innerHTML=`<div class="trim-l"><div class="trim-radio"></div><div><div class="trim-name">${t.name}</div><div class="trim-spec">${t.spec}</div></div></div><div class="trim-price">${won(t.price)}</div>`;
-    d.onclick=()=>{S.trimIdx=i;if(!acqManual)$('acqTaxInput').value='';renderTrims();renderColors();onRegionChange();onDownPctChange();calc();};
+    d.onclick=()=>{S.trimIdx=i;if(!acqManual)$('acqTaxInput').value='';const pEl=$('instPrincipalDirect');if(pEl)pEl.value='';renderTrims();renderColors();onRegionChange();onDownPctChange();calc();};
     list.appendChild(d);
   });
 }
@@ -1520,6 +1615,16 @@ function onRegionChange(){
   const r=$('regionSel').value;
   updateSubsidyLink(r);
   if(!r||!S.carKey)return;
+
+  // 지역 선택 시 공채 자동계산 모드로 전환
+  if(bondMode==='exempt'){
+    bondMode='auto';
+    document.querySelectorAll('.bond-btn').forEach(b=>b.classList.remove('active'));
+    const autoBtn=$('bond-auto'); if(autoBtn) autoBtn.classList.add('active');
+    const autoWrap=$('bondAutoWrap'); if(autoWrap) autoWrap.style.display='block';
+    const manWrap=$('bondManualWrap'); if(manWrap) manWrap.style.display='none';
+  }
+
   const db=SUBSIDY_DB[r];
   if(db){
     // 서울/인천/김포: 국고+지방비+전환지원금 전체 자동입력
@@ -1552,11 +1657,13 @@ function onSubChange(){
   const firstAmt=nat*0.2;
   $('firstVal').textContent=subChecks.first?`-${wonP(firstAmt)}원`:'–';
   $('firstDesc').textContent=`국고보조금(${won(nat)})의 20% = ${won(firstAmt)}`;
-  // 전환지원금 금액 표시 업데이트
   const convAmt=pF('subConv')*10000;
   const convValEl=$('chk-conv')?.querySelector('.sub-val');
   if(convValEl) convValEl.textContent=convAmt>0?`-${won(convAmt)}`:'금액 입력';
-  syncSubTotal();calc();
+  // 보조금 변경 시 할부원금 직접입력 초기화 (자동계산으로 복귀)
+  const pEl=$('instPrincipalDirect'); if(pEl) pEl.value='';
+  const pNote=$('instPrincipalNote'); if(pNote) pNote.style.color='';
+  syncSubTotal(); calc();
 }
 function syncSubTotal(){
   const nat=pF('subNat'),loc=pF('subLoc');
@@ -1593,7 +1700,7 @@ function setBond(mode,el){
   bondMode=mode;
   document.querySelectorAll('.bond-btn').forEach(b=>b.classList.remove('active'));
   el.classList.add('active');
-  $('bondManualWrap').style.display=mode==='manual'?'block':'none';
+  $('bondAutoWrap').style.display = mode==='auto' ? 'block' : 'none';
   calc();
 }
 
@@ -1630,8 +1737,7 @@ function setRegInc(inc){
 function getRegMiscTotal(){
   if(!S.carKey) return 0;
   const acqFinal = pF('acqTaxInput');
-  const bondVal  = bondMode==='auto'
-    ? Math.round((CARS[S.carKey].trims[S.trimIdx].price)*(BOND_RATE[$('regionSel').value]||0.02))
+  const bondVal  = bondMode==='auto' ? calcBondAuto()
     : bondMode==='manual' ? pF('bondCost') : 0;
   return Math.round(acqFinal + bondVal + pF('plateCost') + pF('deliveryCost') + pF('etcCost'));
 }
@@ -1647,7 +1753,6 @@ function onDownPctChange(){
   const pEl   = $('instPrincipalDirect');
   if(!sel) return;
 
-  // 셀렉트 변경 시 할부원금 수동입력 모드 해제
   if(pEl){ pEl._manualMode = false; }
 
   const val = sel.value;
@@ -1658,30 +1763,59 @@ function onDownPctChange(){
   } else {
     if(wrap) wrap.style.display='none';
     if(disp) disp.style.display='block';
-    const pct  = parseInt(val)||0;
-    const base = getInstBase();
-    const amt  = Math.round(base * pct / 100);
-    if(hidIn) hidIn.value = amt;
-    if(disp)  disp.textContent = pct===0 ? '0원' : won(amt);
+    const pct     = parseInt(val)||0;
+    const base    = getInstBase();      // 순차량가
+    const regMisc = getRegMiscTotal();  // 등록+부대비용 합계
+    const dep     = pF('instDeposit');  // 계약금
 
-    // 할부원금 자동 재계산
-    const dep      = pF('instDeposit');
-    const regMisc  = getRegMiscTotal();
-    const actualDown = _regIncluded ? Math.max(0, amt - regMisc) : amt;
-    const dNote    = $('instDownNote');
-    const pNote    = $('instPrincipalNote');
-    if(base > 0){
-      const auto = Math.max(0, base - dep - actualDown);
-      if(pEl) pEl.value = auto > 0 ? Math.round(auto).toLocaleString('ko-KR') : '';
-      if(dNote) dNote.textContent = pct===0
-        ? '선수금 없음 → 순차량가 전액 할부'
-        : `순차량가의 ${pct}% = ${won(amt)} → 할부원금 ${won(Math.round(auto))}`;
-      if(pNote) pNote.textContent = `= 순차량가(${won(Math.round(base))}) − 계약금 − 선수금(${won(actualDown)})`;
+    let pureDown;  // 차량에만 들어가는 순수 선수금
+    let displayAmt; // 셀렉트 옆에 표시할 금액
+    let dispNote;
+
+    if(_regIncluded){
+      // ─ 포함 모드 ─
+      // 고객 총초기비용 = 순차량가 × pct%
+      // 순수선수금 = 총초기비용 - 등록+부대비용
+      const totalInit = Math.round(base * pct / 100);
+      pureDown   = Math.max(0, totalInit - regMisc);
+      displayAmt = totalInit;
+      dispNote   = pct===0 ? '0원' :
+        `총초기비용 ${won(totalInit)} (선수금 ${won(pureDown)} + 등록+부대 ${won(regMisc)})`;
+    } else {
+      // ─ 별도 모드 ─
+      // 선수금 = 순차량가 × pct% (등록+부대 별도)
+      pureDown   = Math.round(base * pct / 100);
+      displayAmt = pureDown;
+      dispNote   = pct===0 ? '0원' : won(pureDown);
+    }
+
+    // hidden input 에는 포함모드는 totalInit, 별도모드는 pureDown 저장
+    // (calc()에서 _regIncluded 상태에 따라 pureDown 추출)
+    const storeAmt = _regIncluded
+      ? Math.round(base * pct / 100)  // totalInit
+      : pureDown;
+    if(hidIn) hidIn.value = storeAmt;
+    if(disp)  disp.textContent = dispNote;
+
+    // 할부원금 자동계산 및 노트
+    const dNote = $('instDownNote');
+    const pNote = $('instPrincipalNote');
+    if(base > 0 && pct > 0){
+      const auto = Math.max(0, base - pureDown);
+      if(pEl) pEl.value = Math.round(auto).toLocaleString('ko-KR');
+      if(dNote) dNote.textContent = _regIncluded
+        ? `총초기비용 ${pct}% → 선수금 ${won(pureDown)} → 할부원금 ${won(Math.round(auto))}`
+        : `선수금 ${pct}% = ${won(pureDown)} → 할부원금 ${won(Math.round(auto))}`;
+      if(pNote) pNote.textContent = `순차량가(${won(Math.round(base))}) − 선수금(${won(pureDown)})`;
+    } else if(pct === 0){
+      const auto = Math.max(0, base - dep);
+      if(pEl) pEl.value = Math.round(auto).toLocaleString('ko-KR');
+      if(dNote) dNote.textContent = `선수금 없음 → 할부원금 = 순차량가 − 계약금 = ${won(Math.round(auto))}`;
+      if(pNote) pNote.textContent = `순차량가(${won(Math.round(base))}) − 계약금(${won(dep)})`;
     }
     calc();
   }
 }
-
 function getInstGrand(){
   const t=$('qGrandTotal')?.textContent?.replace(/,/g,'')||'0';
   return parseFloat(t)||0;
@@ -1691,6 +1825,8 @@ function getInstBase(){
   if(!S.carKey) return 0;
   const car=CARS[S.carKey], trim=car.trims[S.trimIdx];
   const carPrice=trim.price;
+  const subTI=(pF('subTotal')||0)*10000;
+  if(subTI>0) return Math.max(0, carPrice-subTI);
   const nat=(pF('subNat')||0)*10000;
   const loc=(pF('subLoc')||0)*10000;
   const conv=subChecks.conv?(pF('subConv')||0)*10000:0;
@@ -1709,30 +1845,102 @@ function getInstDown(){
   }
   return parseInt($('instDown')?.value)||0;
 }
+// ── 할부원금 자동계산 함수 (단일 진실 공급원) ──
+// 규칙:
+//   선수금 > 0 → 할부원금 = 순차량가 - 선수금
+//   선수금 = 0 → 할부원금 = 순차량가 - 계약금
+//   (등록비용/부대비용은 할부원금과 무관 - 현금으로만 납부)
+
+// ── 공통 할부 계산 값 반환 ──
+// 어디서 호출해도 동일한 결과 보장
+function getInstCalcValues(){
+  const dep      = pF('instDeposit');
+  const rawDown  = getInstDown();           // 입력된 선수금 (포함/별도 구분 전)
+  const netCar   = getInstBase();           // 순차량가 (보조금 차감)
+  const acqV     = pF('acqTaxInput');
+  const bV       = bondMode==='auto' ? calcBondAuto() : bondMode==='manual' ? pF('bondCost') : 0;
+  const regMisc  = Math.round(acqV + bV + pF('plateCost') + pF('deliveryCost') + pF('etcCost'));
+  // 실제 선수금: 포함 모드면 입력값에서 등록비용 차감
+  const actualDown = _regIncluded ? Math.max(0, rawDown - regMisc) : rawDown;
+  // 할부원금 = 순차량가 - 선수금 (선수금 없으면 - 계약금)
+  const principalDirect = pF('instPrincipalDirect');
+  const principalAuto   = actualDown > 0
+    ? Math.max(0, netCar - actualDown)
+    : Math.max(0, netCar - dep);
+  // 직접입력값이 순차량가보다 크면 무효 (보조금 변경 후 낡은 값 방지)
+  const principal = (principalDirect > 0 && principalDirect <= netCar) ? principalDirect : principalAuto;
+  const rate      = Math.min(10, Math.max(0, parseFloat($('instRateDirect')?.value) || 0));
+  return { dep, rawDown, actualDown, netCar, regMisc, principal, rate, acqV };
+}
+
+function calcPrincipalAuto(){
+  const base = getInstBase();       // 순차량가 (보조금 차감)
+  if(!base) return 0;
+  const dep  = pF('instDeposit');   // 계약금
+  const down = getInstDown();       // 선수금 (입력값 그대로)
+  const regMisc = _regIncluded ? getRegMiscTotal() : 0;
+  const actualDown = _regIncluded ? Math.max(0, down - regMisc) : down;
+  if(actualDown > 0){
+    return Math.max(0, base - actualDown);   // 선수금 > 0: 순차량가 - 선수금
+  } else {
+    return Math.max(0, base - dep);          // 선수금 = 0: 순차량가 - 계약금
+  }
+}
+
+// 초기 현금 납부 합계 (고객이 차량 인도 전 내는 현금 총액)
+// = 선수금 + 등록비용 + 부대비용
+// (선수금에 계약금 포함: 선수금 1000만 → 계약금 30만 포함 → 추가납부 970만)
+function calcInitialCash(){
+  const dep  = pF('instDeposit');
+  const down = getInstDown();
+  const regMisc = getRegMiscTotal();
+  const regC = Math.round(pF('acqTaxInput') + (bondMode==='auto'?calcBondAuto():bondMode==='manual'?pF('bondCost'):0));
+  const miscC = Math.round(pF('plateCost')+pF('deliveryCost')+pF('etcCost'));
+  const actualDown = _regIncluded ? Math.max(0, down - regMisc) : down;
+  if(actualDown > 0){
+    // 선수금 있음: 선수금 + 등록+부대 (선수금 안에 계약금 포함됨)
+    return actualDown + (_regIncluded ? 0 : regC + miscC);
+  } else {
+    // 선수금 없음: 계약금 + 등록+부대
+    return dep + regC + miscC;
+  }
+}
 
 function onInstDownChange(){
   // 직접입력 모드일 때만 호출됨
   const base    = getInstBase();
   const dep     = pF('instDeposit');
-  const inputAmt= pF('instDownDirect');
+  const inputAmt= pF('instDownDirect');  // 사용자가 직접 입력한 값
   const regMisc = getRegMiscTotal();
   const pEl     = $('instPrincipalDirect');
   const pNote   = $('instPrincipalNote');
   const dNote   = $('instDownNote');
   const hidIn   = $('instDown');
 
-  const actualDown = _regIncluded ? Math.max(0, inputAmt - regMisc) : inputAmt;
-  if(hidIn) hidIn.value = actualDown;
+  // 포함 모드: inputAmt = 총초기비용 → 순수선수금 = inputAmt - 등록+부대
+  // 별도 모드: inputAmt = 순수선수금 그대로
+  const pureDown = _regIncluded ? Math.max(0, inputAmt - regMisc) : inputAmt;
+
+  // hidden에는 직접입력값 그대로 (calc()에서 모드에 따라 다시 추출)
+  if(hidIn) hidIn.value = inputAmt;
 
   if(base>0){
-    const autoPrincipal = Math.max(0, base - dep - actualDown);
-    if(pEl) pEl.value = Math.round(autoPrincipal).toLocaleString('ko-KR');
+    const autoPrincipal = pureDown>0
+      ? Math.max(0, base - pureDown)
+      : Math.max(0, base - dep);
+    // instPrincipalDirect 필드에 값을 쓰지 않음 - getInstCalcValues()가 자동계산
+    // (사용자가 직접 타이핑한 경우에만 pF('instPrincipalDirect')가 사용됨)
+
     if(_regIncluded && inputAmt>0){
-      if(dNote){ dNote.textContent=`입력 ${won(inputAmt)} − 등록+부대(${won(regMisc)}) = 선수금 ${won(actualDown)}`; dNote.style.color='var(--yellow)'; }
+      if(dNote){ dNote.textContent=`총초기비용 ${won(inputAmt)} − 등록+부대(${won(regMisc)}) = 선수금 ${won(pureDown)} → 할부원금 ${won(Math.round(autoPrincipal))}`; dNote.style.color='var(--yellow)'; }
+    } else if(pureDown>0){
+      if(dNote){ dNote.textContent=`선수금 ${won(pureDown)} → 할부원금 = 순차량가 − 선수금 = ${won(Math.round(autoPrincipal))}`; dNote.style.color='var(--blue)'; }
     } else {
-      if(dNote){ dNote.textContent=`✓ 할부원금 ${won(Math.round(autoPrincipal))} 자동계산`; dNote.style.color='var(--blue)'; }
+      if(dNote){ dNote.textContent=`선수금 없음 → 할부원금 = 순차량가 − 계약금 = ${won(Math.round(autoPrincipal))}`; dNote.style.color='var(--blue)'; }
     }
-    if(pNote){ pNote.textContent=`= 순차량가(${won(Math.round(base))}) − 계약금 − 선수금(${won(actualDown)})`; pNote.style.color=''; }
+    if(pNote){ pNote.textContent = pureDown>0
+      ? `순차량가(${won(Math.round(base))}) − 선수금(${won(pureDown)})`
+      : `순차량가(${won(Math.round(base))}) − 계약금(${won(dep)})`; pNote.style.color=''; }
   }
   calc();
 }
@@ -1805,11 +2013,11 @@ function onRateDirectOnly(v){
 function calc(){
 
   // ── 등록/부대비용 합계는 차종 선택 전에도 항상 계산 ──
-  const _acq  = parseFloat(($('acqTaxInput')?.value||'').replace(/,/g,''))||0;
-  const _bond = bondMode==='manual' ? (parseFloat($('bondCost')?.value)||0) : 0;
-  const _plate    = parseFloat($('plateCost')?.value)||0;
-  const _delivery = parseFloat($('deliveryCost')?.value)||0;
-  const _etc      = parseFloat($('etcCost')?.value)||0;
+  const _acq      = parseFloat(($('acqTaxInput')?.value||'').replace(/,/g,''))||0;
+  const _bond     = bondMode==='manual' ? (parseFloat(($('bondCost')?.value||'').replace(/,/g,''))||0) : 0;
+  const _plate    = parseFloat(($('plateCost')?.value||'').replace(/,/g,''))||0;
+  const _delivery = parseFloat(($('deliveryCost')?.value||'').replace(/,/g,''))||0;
+  const _etc      = parseFloat(($('etcCost')?.value||'').replace(/,/g,''))||0;
   const _reg  = Math.round(_acq + _bond);
   const _misc = Math.round(_plate + _delivery + _etc);
 
@@ -1849,7 +2057,7 @@ function calc(){
   const netCar=carPrice-subT;
 
   const acqBefore=Math.round(carExVAT*0.07);
-  const EV=1400000;
+  const EV=CONFIG.EV_ACQ_REDUCE;
   const acqAfterCalc=Math.max(0,acqBefore-EV);
   if(!acqManual){
     $('acqTaxInput').value=acqAfterCalc>0?Math.round(acqAfterCalc).toLocaleString('ko-KR'):'';
@@ -1861,9 +2069,40 @@ function calc(){
 
   let bondVal=0;
   const region=$('regionSel').value;
-  if(bondMode==='auto'){bondVal=Math.round(carPrice*(BOND_RATE[region]||0.02));$('bondNote').textContent=`지역 공채율 자동 계산`;}
-  else if(bondMode==='manual'){bondVal=pF('bondCost');$('bondNote').textContent='직접 입력값 적용';}
-  else{$('bondNote').textContent='공채 면제 적용';}
+  if(bondMode==='auto'){
+    const rates = BOND_RATE_TABLE[region];
+    if(rates && S.carKey){
+      const supplyPrice = Math.round(carPrice / 1.1);
+      const rate = isCarSUV(S.carKey) ? rates.suv : rates.sedan;
+      const discPct = parseFloat($('bondDiscountInput')?.value)||5;
+      if(rate===0){
+        bondVal=0;
+        $('bondNote').textContent='해당 지역/차종 공채 면제';
+        const det=$('bondAutoDetail'); if(det) det.textContent='';
+      } else {
+        const initial    = Math.round(supplyPrice * rate);
+        const afterExempt= Math.max(0, initial - BOND_EV_EXEMPT);
+        bondVal = Math.round(afterExempt * discPct / 100);
+        $('bondNote').textContent = bondVal===0
+          ? `공채 면제 (전기차 감면 ${won(BOND_EV_EXEMPT)} 적용)`
+          : `공채 고객부담 ${won(bondVal)}`;
+        const det=$('bondAutoDetail');
+        if(det) det.innerHTML =
+          `공급가액 ${won(supplyPrice)} × ${(rate*100).toFixed(0)}% = ${won(initial)}<br>`+
+          `전기차 감면 −${won(BOND_EV_EXEMPT)} → 매입액 ${won(afterExempt)}<br>`+
+          `할인율 ${discPct}% 적용 → <b style="color:var(--g)">고객부담 ${won(bondVal)}</b>`;
+      }
+    } else {
+      bondVal=0;
+      $('bondNote').textContent='지역 선택 시 자동계산';
+      const det=$('bondAutoDetail'); if(det) det.textContent='';
+    }
+  } else if(bondMode==='manual'){
+    bondVal=pF('bondCost');
+    $('bondNote').textContent='직접 입력값 적용';
+  } else {
+    $('bondNote').textContent='공채 면제 적용';
+  }
 
   const plate=pF('plateCost');
   const delivery=pF('deliveryCost');
@@ -1882,6 +2121,9 @@ function calc(){
   setQ('qCarPrice',won(carPrice));
   setQ('qSubNat',nat>0?`-${won(nat)}`:'–');
   setQ('qSubLoc',loc>0?`-${won(loc)}`:'–');
+  // 총 보조금 합계
+  const qSubTotalEl=$('qSubTotal');
+  if(qSubTotalEl) qSubTotalEl.textContent = subT>0 ? `-${won(Math.round(subT))}` : '–';
   showEl('qConvRow',conv>0);setQ('qSubConv',`-${won(conv)}`);
   showEl('qC2Row',subChecks.child2);showEl('qC3Row',subChecks.child3);
   showEl('qFstRow',subChecks.first);setQ('qSubFst',`-${won(fst)}`);
@@ -1889,7 +2131,7 @@ function calc(){
   setQ('qAcqBefore',won(acqBefore));
   setQ('qAcqReduce',acqBefore>EV?`-${won(EV)}`:`-${won(acqBefore)}`);
   setQ('qAcqAfter',won(acqFinal));
-  setQ('qBond',bondMode==='exempt'?'면제':won(bondVal));
+  setQ('qBond', bondVal===0 ? '면제' : won(bondVal));
   setQ('qPlate',won(plate));setQ('qDelivery',won(delivery));
   showEl('qEtcRow',etc>0);setQ('qEtc',won(etc));
   setQ('qGrandTotal',wonP(Math.round(grand)));
@@ -1912,75 +2154,103 @@ function calc(){
     if(dep>0)$('qDeposit').innerHTML=`<div class="q-line"><span class="ql">계약금</span><span class="qv yellow">${won(dep)}</span></div><div class="q-line"><span class="ql">잔금</span><span class="qv">${won(Math.max(0,grand-dep))}</span></div>`;
   } else if(S.payMode==='installment'){
     qm.classList.add('show');
-    const dep=pF('instDeposit');
-    const inputAmt=getInstDown(); // 선수금 (셀렉트 or 직접입력)
-    const months=Math.min(60,Math.max(1,parseInt($('instMonthDirect').value)||36));
-    const rate=Math.min(10,Math.max(0,parseFloat($('instRateDirect').value)||0));
+    const dep   = pF('instDeposit');   // 계약금 (항상 할부원금에서 제외)
+    const down  = getInstDown();       // 선수금 (계약금과 별개)
+    const months= Math.min(60,Math.max(1,parseInt($('instMonthDirect').value)||36));
+    const rate  = Math.min(10,Math.max(0,parseFloat($('instRateDirect').value)||0));
 
-    // 등록+부대비용
     const regCost  = Math.round(acqFinal + bondVal);
     const miscCost = Math.round(plate + delivery + etc);
     const regMisc  = regCost + miscCost;
 
-    // 포함 선택 시: 실제선수금 = 입력값 − 등록+부대
-    const actualDown = _regIncluded
-      ? Math.max(0, inputAmt - regMisc)
-      : inputAmt;
+    // 선수금 추출
+    // 포함 모드: down = 순차량가×% (총초기비용) → 순수선수금 = down - regMisc
+    // 별도 모드: down = 순수선수금 그대로
+    const pureDown  = _regIncluded ? Math.max(0, down - regMisc) : down;
+    const actualDown = pureDown;
 
-    // 순 차량가 (보조금 차감, 등록/부대 제외)
+    // 순차량가 (보조금 차감)
     const netCar2 = Math.max(0, carPrice - subT);
-
-    // 순차량가 표시
     const ncd=$('instNetCarDisp');
     if(ncd) ncd.textContent = netCar2>0 ? won(Math.round(netCar2)) : '–';
 
-    // 할부원금 = 순차량가 − 계약금 − 실제선수금
+    // ── 할부원금 = 순차량가 − 순수선수금 (선수금 0이면 − 계약금) ──
     const principalDirect = pF('instPrincipalDirect');
-    const principalAuto   = Math.max(0, netCar2 - dep - actualDown);
-    const principal       = principalDirect > 0 ? principalDirect : principalAuto;
+    // 직접입력값이 현재 순차량가보다 크면 무효 (보조금 변경 후 낡은 값)
+    const principalAuto   = actualDown>0 ? Math.max(0, netCar2 - actualDown) : Math.max(0, netCar2 - dep);
+    const principal       = (principalDirect > 0 && principalDirect <= netCar2) ? principalDirect : principalAuto;
+    // ※ 위 계산은 getInstCalcValues()와 동일 로직 (netCar2 == getInstBase())
 
-    // 초기비용 요약 (계약금 + 선수금 + 등록/부대)
+    const monthly = pmt(principal, rate, months);
+
+    // ── 초기비용 요약 ──
     const setI=(id,v)=>{const e=$(id);if(e)e.textContent=v;};
-    setI('isum-deposit', won(dep)+' (별도 결제)');
+    const downPct = netCar2>0 && actualDown>0 ? Math.round(actualDown/netCar2*100) : 0;
+    const regMiscTotal = regCost + miscCost;
+    const d2=$('isum-deposit2'); if(d2) d2.textContent=won(dep);
 
-    if(_regIncluded){
-      const labelEl=$('isum-down-label');
-      if(labelEl) labelEl.textContent=`선수금 (입력액 중 순선수금)`;
-      setI('isum-down',  actualDown>0?won(actualDown):'–');
-      setI('isum-reg',   won(regCost)+' ← 선수금에 포함');
-      setI('isum-misc',  won(miscCost)+' ← 선수금에 포함');
-      setI('isum-total', won(Math.round(dep + inputAmt)));
+    if(actualDown > 0){
+      const pureDownPct = netCar2>0 ? Math.round(actualDown/netCar2*100) : 0;
+      const extraPay = Math.max(0, actualDown - dep);
+      const totalInit = _regIncluded ? down : actualDown + regMiscTotal;
+      const preDelivery = _regIncluded
+        ? Math.max(0, down - dep)
+        : actualDown + regMiscTotal;
+
+      setI('isum-down', won(actualDown));
+      setI('isum-down-pct', `${pureDownPct}%`);
+      setI('isum-deposit', won(dep));
+      // 선수금 있을 때: 계약금은 서브항목 (들여쓰기)
+      const depRow=$('isum-deposit-row');
+      const depLbl=$('isum-deposit-label');
+      if(depRow) depRow.style.paddingLeft='10px';
+      if(depLbl) depLbl.textContent='└ 계약금 (계약 시 납부)';
+      setI('isum-extra', won(extraPay));
+      setI('isum-reg-misc', won(regMiscTotal));
+      setI('isum-grand', won(Math.round(totalInit)));
+      setI('isum-total', won(Math.round(preDelivery)));
     } else {
-      const labelEl=$('isum-down-label');
-      if(labelEl) labelEl.textContent='선수금';
-      setI('isum-down',  inputAmt>0?won(inputAmt):'없음');
-      setI('isum-reg',   won(regCost));
-      setI('isum-misc',  won(miscCost));
-      setI('isum-total', won(Math.round(dep + inputAmt + regCost + miscCost)));
+      setI('isum-down', '없음');
+      setI('isum-down-pct', '');
+      setI('isum-deposit', won(dep));
+      // 선수금 없을 때: 계약금은 별도 독립 항목
+      const depRow=$('isum-deposit-row');
+      const depLbl=$('isum-deposit-label');
+      if(depRow) depRow.style.paddingLeft='0';
+      if(depLbl) depLbl.textContent='계약금 (계약 시 납부)';
+      setI('isum-extra', '–');
+      setI('isum-reg-misc', won(regMiscTotal));
+      setI('isum-grand', won(Math.round(dep + regMiscTotal)));
+      setI('isum-total', won(Math.round(regMiscTotal)));
     }
 
     const pNote=$('instPrincipalNote');
     if(pNote && !pNote.style.color){
       pNote.textContent = principalDirect>0
         ? `✓ 할부원금 ${won(Math.round(principal))} 직접입력`
-        : `= 순차량가(${won(Math.round(netCar2))}) − 계약금 − 선수금(${won(actualDown)})`;
+        : actualDown>0
+          ? `순차량가(${won(Math.round(netCar2))}) − 선수금(${won(actualDown)})`
+          : `순차량가(${won(Math.round(netCar2))}) − 계약금(${won(dep)})`;
     }
 
-    const monthly=pmt(principal,rate,months);
     setQ('qMonthlyLabel',`월 납입금 · ${rate===0?'무이자':rate+'%'} · ${months}개월`);
     setQ('qMonthlyAmt',wonP(Math.round(monthly)));
     setQ('qMonthlyDetail','');
     $('qDeposit').innerHTML=
-      (dep>0?`<div class="q-line"><span class="ql">계약금</span><span class="qv yellow">${won(dep)}</span></div>`:'') +
-      (actualDown>0?`<div class="q-line"><span class="ql">선수금${_regIncluded?' (등록+부대 포함 납부 중 순선수금)':''}</span><span class="qv yellow">${won(actualDown)}</span></div>`:'') +
+      `<div class="q-line"><span class="ql">계약금</span><span class="qv yellow">${won(dep)}</span></div>` +
+      (actualDown>0
+        ? `<div class="q-line"><span class="ql">선수금</span><span class="qv yellow">${won(actualDown)}</span></div>`
+        : `<div class="q-line"><span class="ql" style="font-size:10px;color:var(--dim);">선수금: 계약금(${won(dep)})으로 설정</span></div>`) +
       `<div class="q-line" style="border-top:1px dashed var(--border2);margin-top:4px;padding-top:6px;">
          <span class="ql" style="color:var(--blue);font-weight:600;">할부원금</span>
          <span class="qv blue">${won(Math.round(principal))}</span>
        </div>` +
-      `<div class="q-line"><span class="ql" style="font-size:10px;color:var(--dim);">순차량가 ${won(Math.round(netCar2))} 기준</span></div>` +
+      (actualDown>0
+        ? `<div class="q-line"><span class="ql" style="font-size:10px;color:var(--dim);">순차량가 ${won(Math.round(netCar2))} − 선수금(${won(actualDown)})</span></div>`
+        : `<div class="q-line"><span class="ql" style="font-size:10px;color:var(--dim);">순차량가 ${won(Math.round(netCar2))} − 계약금(${won(dep)})</span></div>`) +
       `<div class="q-line"><span class="ql">기간 / 금리</span><span class="qv">${months}개월 / ${rate===0?'무이자':rate+'%'}</span></div>`;
 
-  } else if(S.payMode==='lease'){
+    } else if(S.payMode==='lease'){
     qm.classList.add('show');
     const dep=pF('leaseDeposit'),months=parseInt($('leaseMonth').value)||36;
     const rate=pF('leaseRate')||4.5,resPct=pF('leaseResidual')||30;
@@ -2011,63 +2281,40 @@ function buildQuoteLines(){
     {sec:'차량 가격'},
     {label:'차량가 (VAT포함)',val:collect('qCarPrice')},
     {sec:'보조금 차감'},
-    {label:'국고 보조금',val:collect('qSubNat'),red:true},
-    {label:'지방비',val:collect('qSubLoc'),red:true},
+    {label:'총 보조금',val:collect('qSubTotal')||'–',red:true,bold:true},
+    {label:'└ 국고 보조금',val:collect('qSubNat'),red:true,dim:true},
+    {label:'└ 지방비',val:collect('qSubLoc'),red:true,dim:true},
   ];
-  if($('qConvRow').style.display!=='none')lines.push({label:'전환지원금',val:collect('qSubConv'),red:true});
-  if($('qC2Row').style.display!=='none')lines.push({label:'다자녀 (2명)',val:'-1,000,000원',red:true});
-  if($('qC3Row').style.display!=='none')lines.push({label:'다자녀 (3명+)',val:'-2,000,000원',red:true});
-  if($('qFstRow').style.display!=='none')lines.push({label:'생애 첫차',val:collect('qSubFst'),red:true});
+  if($('qConvRow').style.display!=='none')lines.push({label:'└ 전환지원금',val:collect('qSubConv'),red:true,dim:true});
+  if($('qC2Row').style.display!=='none')lines.push({label:'└ 다자녀 (2명)',val:'-1,000,000원',red:true,dim:true});
+  if($('qC3Row').style.display!=='none')lines.push({label:'└ 다자녀 (3명+)',val:'-2,000,000원',red:true,dim:true});
+  if($('qFstRow').style.display!=='none')lines.push({label:'└ 생애 첫차',val:collect('qSubFst'),red:true,dim:true});
   lines.push({subtotal:true,label:'실 차량 구매가',val:collect('qNetCar')});
   lines.push({sec:'등록비용'});
   lines.push({label:'취등록세 (감면 전)',val:collect('qAcqBefore'),strike:true});
   lines.push({label:'전기차 감면 (-1,400,000원)',val:collect('qAcqReduce'),red:true});
   lines.push({label:'취등록세 (감면 후)',val:collect('qAcqAfter'),yellow:true});
   lines.push({label:'공채',val:collect('qBond'),dim:true});
-  lines.push({subtotal2:true, label:'등록비용 합계', val:collect('qRegTotal'), color:'yellow'});
-
+  lines.push({notice:true, label:'※ 공채 할인율은 매일 변동되어 실제 등록일 기준으로 달라질 수 있습니다.'});
   lines.push({sec:'부대비용'});
   lines.push({label:'등록 부대비용',val:collect('qPlate')});
   lines.push({label:'탁송료',val:collect('qDelivery')});
   if($('qEtcRow').style.display!=='none')lines.push({label:'기타',val:collect('qEtc')});
-  lines.push({subtotal2:true, label:'부대비용 합계', val:collect('qMiscTotal'), color:'blue'});
 
-  // 등록+부대비용 총합계: DOM 값이 아닌 직접 계산으로 오류 방지
+  // 등록+부대 하나로 통합 (합계 행 중복 제거)
   const _regV=parseInt((collect('qRegTotal')||'0').replace(/[^0-9]/g,''))||0;
   const _miscV=parseInt((collect('qMiscTotal')||'0').replace(/[^0-9]/g,''))||0;
   const _costSum=_regV+_miscV;
   if(_costSum>0){
-    lines.push({costGrand:true, label:'등록비용 + 부대비용 총합계', val:won(_costSum)});
-  }
-
-  // 할부: 초기비용만 왼쪽 컬럼에 표시 (할부 상세는 오른쪽 컬럼에서)
-  if(S.payMode==='installment'){
-    const dep=pF('instDeposit'), down=getInstDown();
-    const carPrice=CARS[S.carKey].trims[S.trimIdx].price;
-    const nat=(pF('subNat')||0)*10000,loc=(pF('subLoc')||0)*10000,conv=subChecks.conv?(pF('subConv')||0)*10000:0;
-    const c2=subChecks.child2?1000000:0,c3=subChecks.child3?2000000:0,fst=subChecks.first?nat*0.2:0;
-    const subTI=(pF('subTotal')||0)*10000;
-    const subT=subTI>0?subTI:(nat+loc+conv+c2+c3+fst);
-    const acqFinal=pF('acqTaxInput');
-    const bondVal=bondMode==='auto'?Math.round(carPrice*(BOND_RATE[$('regionSel').value]||0.02)):bondMode==='manual'?pF('bondCost'):0;
-    const regCost=Math.round(acqFinal+bondVal);
-    const miscCost=Math.round(pF('plateCost')+pF('deliveryCost')+pF('etcCost'));
-    const actualDown=_regIncluded?Math.max(0,down-(regCost+miscCost)):down;
-    const totalInit=dep+(_regIncluded?actualDown:actualDown+regCost+miscCost);
-    lines.push({sec:'초기 납부 안내'});
-    if(dep>0) lines.push({label:'계약금 (30만원 별도 결제)',val:won(dep),yellow:true,bold:true});
-    if(actualDown>0) lines.push({label:'선수금',val:won(actualDown),yellow:true});
-    if(!_regIncluded){
-      lines.push({label:'등록비용 (취등록세+공채)',val:won(regCost)});
-      lines.push({label:'부대비용 (탁송료 포함)',val:won(miscCost)});
-    }
-    lines.push({subtotal2:true,label:'초기 현금 합계',val:won(totalInit),color:'yellow'});
+    lines.push({costGrand:true, label:'등록 + 부대비용 합계', val:won(_costSum)});
   }
 
   return lines;
 }
 
 async function renderToCanvas(){
+  // 폰트 로드 대기 (캔버스 텍스트 깨짐 방지)
+  await document.fonts.ready.catch(()=>{});
   const car=CARS[S.carKey],trim=car.trims[S.trimIdx];
   const colors=car.colorsByTrim[S.trimIdx]||car.colorsByTrim[0];
   const color=colors[S.colorIdx]||colors[0];
@@ -2174,7 +2421,7 @@ function drawCanvasTwoCol(ctx,W,pr,car,trim,color,carImg){
   const bodyStartY = lY;
 
   // 행 높이 상수 (pt 기준)
-  const LINE_H = 22*pr;   // 일반 행
+  const LINE_H = 25*pr;   // 일반 행
   const SEC_H  = 24*pr;   // 섹션 헤더
 
   // 텍스트를 행 박스 안에 수직 중앙 정렬하는 헬퍼
@@ -2209,9 +2456,13 @@ function drawCanvasTwoCol(ctx,W,pr,car,trim,color,carImg){
     } else if(row.subtotal2){
       const H=20*pr;
       fill(SLATE); ctx.fillRect(leftX, lY, colW, H);
+      const sub2c = row.color==='red' ? '#d63031' : row.color==='blue' ? ACCENT : GRN2;
       font(8.5,700); txC(row.label, leftX+8*pr, lY, H, 8.5, INK2);
-      font(9,800);   txRC(row.val, leftX+colW-4*pr, lY, H, 9, INK);
+      font(9,800);   txRC(row.val, leftX+colW-4*pr, lY, H, 9, sub2c);
       lY += H + 2*pr;
+      const NH=13*pr;
+      font(6.5,400); txt(row.label, leftX+2*pr, lY+1*pr, 6.5, INK3);
+      lY += NH;
 
     } else if(row.costGrand){
       lY += 4*pr;
@@ -2223,11 +2474,14 @@ function drawCanvasTwoCol(ctx,W,pr,car,trim,color,carImg){
       lY += H + 4*pr;
 
     } else {
-      const lc = row.bold ? INK : INK3;
-      const vc = row.red?'#d63031':row.yellow?GRN2:row.blue?ACCENT:row.dim?INK3:INK2;
-      font(8.5, row.bold?700:400); txC(row.label, leftX, lY, LINE_H, 8.5, lc);
-      font(8.5, row.bold?800:500); txRC(row.val||'–', leftX+colW, lY, LINE_H, 8.5, vc);
-      lY += LINE_H;
+      const lc = row.bold ? INK : (row.dim ? INK3 : INK3);
+      const vc = row.red?'#d63031':row.yellow?GRN2:row.blue?ACCENT:row.dim?'#d63031':INK2;
+      const fs = row.dim ? 8 : 8.5;
+      const fw = row.bold ? 700 : (row.dim ? 400 : 400);
+      const indent = row.dim ? 6*pr : 0;
+      font(fs, fw); txC(row.label, leftX+indent, lY, LINE_H, fs, lc);
+      font(fs, row.bold?800:(row.dim?400:500)); txRC(row.val||'–', leftX+colW, lY, LINE_H, fs, vc);
+      lY += row.dim ? Math.round(LINE_H*0.85) : LINE_H;
       fill(SLATED); ctx.fillRect(leftX, lY-0.5*pr, colW, 0.5*pr);
     }
   }
@@ -2306,13 +2560,13 @@ function drawCanvasTwoCol(ctx,W,pr,car,trim,color,carImg){
   lY += savH + 4*pr;
   const sBoxW=Math.floor((colW-8*pr)/3);
   ['연간','5년','10년'].forEach((lb,i)=>{
-    const bx=leftX+i*(sBoxW+4*pr), bv=['165만원','825만원','1,650만원'][i];
+    const bx=leftX+i*(sBoxW+4*pr), bv=[CONFIG.SAVE_YEAR,CONFIG.SAVE_5Y,CONFIG.SAVE_10Y][i];
     fill(SLATE); ctx.fillRect(bx, lY, sBoxW, sBoxH);
     font(7,400);   txC(lb, bx+5*pr, lY, sBoxH*0.45, 7, INK3);
     font(11,900);  txRC(bv, bx+sBoxW-5*pr, lY+sBoxH*0.45, sBoxH*0.55, 11, GRN2);
   });
   lY += sBoxH + 5*pr;
-  font(7,400); txt('기준: 휘발유 1,700원 · 급속충전 347원/kWh · 가솔린 12km/L · 전비 4.5km/kWh', leftX, lY, 7, INK3);
+  font(7,400); txt(CONFIG.SAVE_NOTE, leftX, lY, 7, INK3);
   lY += noteH;
   const leftFinalY = lY;
 
@@ -2357,92 +2611,60 @@ function drawCanvasTwoCol(ctx,W,pr,car,trim,color,carImg){
   };
 
   if(mode==='installment'){
-    // ── 데이터 계산 ──────────────────────────────────────────
-    const dep     = pF('instDeposit');
-    const down    = getInstDown();
+    // 공통 함수로 계산 (calc/renderCompareCanvas와 동일 결과 보장)
+    const {dep, actualDown, netCar, regMisc, principal, rate, acqV:acqFV} = getInstCalcValues();
+    const down    = getInstDown();  // raw 선수금 (표시용)
     const months  = Math.min(60,Math.max(1,parseInt($('instMonthDirect').value)||36));
-    const rate    = Math.min(10,Math.max(0,parseFloat($('instRateDirect').value)||0));
     const carP    = (CARS[S.carKey].trims[S.trimIdx].price)||0;
-    const nat     = (pF('subNat')||0)*10000;
-    const loc     = (pF('subLoc')||0)*10000;
-    const conv    = subChecks.conv?(pF('subConv')||0)*10000:0;
-    const c2      = subChecks.child2?1000000:0;
-    const c3      = subChecks.child3?2000000:0;
-    const fst     = subChecks.first?nat*0.2:0;
-    const netCar  = Math.max(0,carP-(nat+loc+conv+c2+c3+fst));
-    const acqFV   = pF('acqTaxInput');
-    const bV      = bondMode==='auto'
-      ? Math.round(carP*(BOND_RATE[$('regionSel').value]||0.02))
-      : bondMode==='manual'?pF('bondCost'):0;
+    const nat=(pF('subNat')||0)*10000, loc=(pF('subLoc')||0)*10000;
+    const conv=subChecks.conv?(pF('subConv')||0)*10000:0;
+    const c2=subChecks.child2?1000000:0, c3=subChecks.child3?2000000:0;
+    const fst=subChecks.first?nat*0.2:0;
+    const subTI2=(pF('subTotal')||0)*10000;
+    const subT2 = subTI2>0 ? subTI2 : (nat+loc+conv+c2+c3+fst);
+    const bV      = bondMode==='auto' ? calcBondAuto() : bondMode==='manual'?pF('bondCost'):0;
     const regCost  = Math.round(acqFV+bV);
     const miscCost = Math.round(pF('plateCost')+pF('deliveryCost')+pF('etcCost'));
-    const regMisc  = regCost+miscCost;
-    const actualDown = _regIncluded?Math.max(0,down-regMisc):down;
-    const pDir    = pF('instPrincipalDirect');
-    const principal = pDir>0?pDir:Math.max(0,netCar-dep-actualDown);
-    const monthly = pmt(principal,rate,months);
+    const monthly  = pmt(principal,rate,months);
     const totalInterest = Math.max(0,monthly*months-principal);
-    const initTotal = dep+(_regIncluded?actualDown:actualDown+regCost+miscCost);
 
-    // ── 섹션1: 초기 납부 내역 ───────────────────────────────
+    // ── 초기비용 계산 ──
+    const downPctC  = netCar>0 && actualDown>0 ? Math.round(actualDown/netCar*100) : 0;
+    const extraPayC = actualDown>0 ? Math.max(0, actualDown-dep) : 0;
+    const grandInitC = actualDown>0
+      ? (_regIncluded ? down : actualDown + regMisc)
+      : dep + regMisc;
+    const preDeliveryC = actualDown>0
+      ? (_regIncluded ? Math.max(0, down - dep) : actualDown + regMisc)
+      : regMisc;
+
+    // ── 할부 조건 (최상단) ──
     { const H=28*pr;
       fill(ACCENT); ctx.fillRect(rightX,rY,colW,H);
-      font(10,800); txC('💰  초기 납부 내역',rightX+12*pr,rY,H,10,'#ffffff');
+      font(10,800); txC('할부 조건',rightX+12*pr,rY,H,10,'#ffffff');
       rY+=H+4*pr; }
 
-    // 계약금
-    { const H=LINE_H;
-      fill(SLATE); ctx.fillRect(rightX,rY,colW,H);
-      font(8,400); txC('계약금  (30만원 · 별도 결제)',rightX+10*pr,rY,H,8,INK3);
-      font(9,800); txRC(won(dep),rightX+colW-8*pr,rY,H,9,ACCENT);
-      rY+=H; fill(SLATED); ctx.fillRect(rightX,rY-0.5*pr,colW,0.5*pr); }
-
-    // 선수금
-    if(actualDown>0){
+    // 선수금 / 개월수 / 금리
+    [
+      ['선수금', actualDown>0 ? `${won(actualDown)}  (${downPctC}%)` : '없음'],
+      ['할부 기간', months+'개월'],
+      ['금리', rate===0?'무이자 (0%)':rate.toFixed(1)+'% (연)'],
+    ].forEach(([lbl,val])=>{
       const H=LINE_H;
-      font(8,400); txC('선수금',rightX+10*pr,rY,H,8,INK3);
-      font(9,800); txRC(won(actualDown),rightX+colW-8*pr,rY,H,9,ACCENT);
+      font(8,400); txC(lbl, rightX+10*pr, rY, H, 8, INK3);
+      font(8.5,600); txRC(val, rightX+colW-8*pr, rY, H, 8.5, INK2);
       rY+=H; fill(SLATED); ctx.fillRect(rightX,rY-0.5*pr,colW,0.5*pr);
-    }
+    });
+    rY+=6*pr;
 
-    // 등록비용 / 부대비용 (별도일 때만)
-    if(!_regIncluded){
-      [['등록비용 (취등록세+공채)',regCost],['부대비용 (탁송료 포함)',miscCost]].forEach(([lbl,amt])=>{
-        const H=LINE_H;
-        font(8,400); txC(lbl,rightX+10*pr,rY,H,8,INK3);
-        font(8.5,600); txRC(won(amt),rightX+colW-8*pr,rY,H,8.5,INK2);
-        rY+=H; fill(SLATED); ctx.fillRect(rightX,rY-0.5*pr,colW,0.5*pr);
-      });
-    }
-
-    // 초기납부 합계
-    { const H=30*pr;
-      fill(SLATE); ctx.fillRect(rightX,rY,colW,H);
-      fill(GRN);   ctx.fillRect(rightX,rY,3*pr,H);
-      font(8,600);  txC('초기 납부 합계',rightX+10*pr,rY,H*0.48,8,INK2);
-      font(12,900); txRC(won(initTotal),rightX+colW-8*pr,rY,H,12,GRN2);
-      rY+=H+10*pr; }
-
-    // ── 섹션2: 할부 조건 ────────────────────────────────────
-    rSec('할부 조건');
-    rLine('순 차량가 (보조금 차감 후)',won(Math.round(netCar)));
-    rLine('할부 기간',months+'개월');
-    rLine('금리',rate===0?'무이자 (0%)':rate.toFixed(1)+'% (연)');
-
-    // 할부원금 강조 행
-    { const H=28*pr;
+    // 할부원금 강조
+    { const H=36*pr;
       fill(SLATE); ctx.fillRect(rightX,rY,colW,H);
       fill(ACCENT); ctx.fillRect(rightX,rY,3*pr,H);
-      font(8.5,700); txC('할부원금 (실 대출금액)',rightX+10*pr,rY,H,8.5,INK);
-      font(11,900);  txRC(won(Math.round(principal)),rightX+colW-8*pr,rY,H,11,ACCENT);
+      font(8,600);   txC('할부원금',rightX+10*pr,rY,H*0.44,8,INK2);
+      font(7,400);   txC(actualDown>0?`순차량가(${won(Math.round(netCar))}) − 선수금(${won(actualDown)})`:actualDown===0?`순차량가(${won(Math.round(netCar))}) − 계약금(${won(dep)})`:'-',rightX+10*pr,rY+H*0.44,H*0.56,7,INK3);
+      font(12,900);  txRC(won(Math.round(principal)),rightX+colW-8*pr,rY,H,12,ACCENT);
       rY+=H+2*pr; }
-
-    if(rate>0){
-      const H=LINE_H;
-      font(8,400); txC('이자 합계 (예상)',rightX+10*pr,rY,H,8,INK3);
-      font(8.5,500); txRC(won(Math.round(totalInterest)),rightX+colW-8*pr,rY,H,8.5,INK3);
-      rY+=H; fill(SLATED); ctx.fillRect(rightX,rY-0.5*pr,colW,0.5*pr);
-    }
 
     // 월납입금 그린 박스
     rY+=8*pr;
@@ -2450,40 +2672,42 @@ function drawCanvasTwoCol(ctx,W,pr,car,trim,color,carImg){
       fill(GRN); ctx.fillRect(rightX,rY,colW,H);
       font(8,600);  txC('월 납입금 (원리금균등)',rightX+12*pr,rY,H*0.40,8,'rgba(255,255,255,0.75)');
       font(20,900); txRC(won(Math.round(monthly)),rightX+colW-12*pr,rY+H*0.40,H*0.60,20,'#ffffff');
+      rY+=H+12*pr; }
+
+    // ── 초기 납부 내역 ──
+    { const H=28*pr;
+      fill(ACCENT); ctx.fillRect(rightX,rY,colW,H);
+      font(10,800); txC('💰  초기 납부 내역',rightX+12*pr,rY,H,10,'#ffffff');
+      rY+=H+6*pr; }
+
+    // 1. 선수금 + 계약금 표시
+    { const H=LINE_H;
+      font(8,400); txC(actualDown>0 ? `1. 선수금  ${downPctC}%` : '1. 선수금', rightX+10*pr, rY, H, 8, INK3);
+      font(9,800); txRC(actualDown>0?won(actualDown):'없음', rightX+colW-8*pr, rY, H, 9, ACCENT);
+      rY+=H; fill(SLATED); ctx.fillRect(rightX,rY-0.5*pr,colW,0.5*pr); }
+
+    // └ 계약금 (선수금 있을 때: 선수금 중 일부 / 없을 때: 별도 항목)
+    { const H=Math.round(LINE_H*0.85);
+      const lbl = actualDown>0 ? '  └ 계약금 (계약 시 납부)' : '계약금 (계약 시 납부)';
+      font(7.5, actualDown>0?400:500); txC(lbl, rightX+10*pr, rY, H, 7.5, INK3);
+      font(8, actualDown>0?500:600); txRC(won(dep), rightX+colW-8*pr, rY, H, 8, actualDown>0?INK3:INK2);
+      rY+=H; fill(SLATED); ctx.fillRect(rightX,rY-0.5*pr,colW,0.5*pr); }
+
+    // 2. 취등록세+부대비용
+    { const H=LINE_H;
+      font(8,400); txC('2. 취등록세+공채 / 부대비용', rightX+10*pr, rY, H, 8, INK3);
+      font(8.5,600); txRC(won(regCost+miscCost), rightX+colW-8*pr, rY, H, 8.5, INK2);
+      rY+=H+6*pr; }
+
+    // 초기비용 합계 (1+2)
+    { const H=34*pr;
+      fill(SLATE); ctx.fillRect(rightX,rY,colW,H);
+      fill(GRN);   ctx.fillRect(rightX,rY,3*pr,H);
+      font(8,600);  txC('초기비용 합계 (1+2)', rightX+10*pr, rY, H*0.45, 8, INK2);
+      font(13,900); txRC(won(Math.round(grandInitC)), rightX+colW-8*pr, rY, H, 13, GRN2);
       rY+=H+10*pr; }
 
-    // ── 섹션3: 추가 서류 (보조금 선택 시 조건부) ────────────
-    const extraDocs=[];
-    if(subChecks.conv)
-      extraDocs.push({label:'[전환지원금] 추가 서류',items:['가족관계증명서','자동차 등록원부 갑부']});
-    if(subChecks.child2||subChecks.child3)
-      extraDocs.push({label:'[다자녀] 추가 서류',items:['가족관계증명서']});
-    if(subChecks.first)
-      extraDocs.push({label:'[생애첫차] 추가 서류',
-        items:['지방세 세목별 미과세 증명서'],
-        note:'(취득세·등록세·자동차세(차량) / 만 18세 연도부터)'});
-
-    if(extraDocs.length>0){
-      const dH=14*pr, dSH=17*pr;
-      const validH=dH+2*pr;
-      const totalH=8*pr+dSH+extraDocs.reduce((a,g)=>a+dSH+g.items.length*dH+(g.note?dH+2*pr:0),0)+validH+10*pr;
-      fill(SLATE); ctx.fillRect(rightX,rY,colW,totalH);
-      fill(GRN);   ctx.fillRect(rightX,rY,3*pr,totalH);
-      let ey=rY+8*pr;
-      font(8.5,700); txt('추가 필요 서류',rightX+10*pr,ey,8.5,ACCENT); ey+=dSH;
-      for(const g of extraDocs){
-        font(8,700); txt(g.label,rightX+10*pr,ey,8,GRN2); ey+=dSH;
-        for(const item of g.items){
-          font(7.5,400); txt('· '+item,rightX+16*pr,ey,7.5,INK2); ey+=dH;
-        }
-        if(g.note){ font(7,400); txt(g.note,rightX+16*pr,ey,7,INK3); ey+=dH+2*pr; }
-      }
-      // 유효기간 공통 안내
-      font(7.5,600); txt('※ 모든 서류 유효기간: 발급 후 1개월 이내',rightX+10*pr,ey,7.5,INK3);
-      rY+=totalH+6*pr;
-    }
-
-  } else if(mode==='lease'){
+    } else if(mode==='lease'){
     const dep=pF('leaseDeposit'), months=parseInt($('leaseMonth').value)||36;
     const rate=pF('leaseRate')||4.5, resPct=pF('leaseResidual')||30;
     const grand=parseFloat($('qGrandTotal').textContent.replace(/,/g,''))||0;
@@ -2595,6 +2819,11 @@ function drawCanvas(ctx,W,pr,car,trim,color,lines,carImg){
       font(10,800); txRC(row.val, W-pad-6*pr, y, H, 10, INK);
       y += H + 4*pr;
 
+    } else if(row.notice){
+      const NH=15*pr;
+      font(7,400); txt(row.label, pad+2*pr, y+2*pr, 7, INK3);
+      y += NH;
+
     } else if(row.costGrand){
       y += 4*pr;
       const H=28*pr;
@@ -2622,47 +2851,77 @@ function drawCanvas(ctx,W,pr,car,trim,color,lines,carImg){
   font(21,900); txRC($('qGrandTotal').textContent+'원', W-pad-14*pr, y+totH*0.44, totH*0.56, 21, '#ffffff');
   y += totH + 16*pr;
 
-  // 서류 박스 - 2컬럼 (공통 | 추가)
-  const docsBase2=[{t:'[공통 서류]',s:true},{t:'주민등록등본',s:false},
-    {t:'주민등록초본 (1년내 주소)',s:false},{t:'지방세 납세 증명서',s:false}];
-  const docsExtra2=[];
-  if(subChecks.conv)  docsExtra2.push({t:'[전환지원금]',s:true},{t:'가족관계증명서',s:false},{t:'자동차 등록원부 갑부',s:false});
-  if(subChecks.child2||subChecks.child3) docsExtra2.push({t:'[다자녀]',s:true},{t:'가족관계증명서',s:false});
-  if(subChecks.first) docsExtra2.push({t:'[생애첫차]',s:true},{t:'지방세 세목별 미과세 증명서',s:false},{t:'(취득·등록·자동차세/만18세부터)',s:false,note:true});
-
-  const dSH2=17*pr, dRH2=14*pr;
-  const hasExtra2=docsExtra2.length>0;
-  const validLine=14*pr;
-  const lDocsH2=10*pr+dSH2+dRH2+docsBase2.reduce((a,d)=>a+(d.s?dSH2:dRH2),0)+validLine+8*pr;
-  const rDocsH2=hasExtra2?10*pr+dSH2+docsExtra2.reduce((a,d)=>a+(d.s?dSH2:d.note?11*pr:dRH2),0)+8*pr:0;
-  const docsH2=Math.max(lDocsH2, rDocsH2||lDocsH2);
-
-  fill(SLATE); ctx.fillRect(pad, y, cw, docsH2);
-  fill(GRN);   ctx.fillRect(pad, y, 3*pr, docsH2);
-  font(10,700); txt('보조금 필요 서류', pad+10*pr, y+8*pr, 10, ACCENT);
-  font(8,500);  txt('※ 발급용 / 주민번호 뒷자리 포함', pad+10*pr, y+8*pr+dSH2, 8, INK3);
-
-  const dLeft2=pad+10*pr, dRight2=pad+cw/2+6*pr;
-  let dya2=y+10*pr+dSH2+dRH2;
-  for(const d of docsBase2){
-    font(d.s?9:8.5, d.s?700:400);
-    txt(d.s?d.t:'· '+d.t, dLeft2+(d.s?0:4*pr), dya2, d.s?9:8.5, d.s?ACCENT:INK3);
-    dya2+=d.s?dSH2:dRH2;
-  }
-  // 유효기간
-  font(7.5,600); txt('※ 유효기간: 발급 후 1개월 이내', dLeft2, dya2, 7.5, INK3);
-
-  if(hasExtra2){
-    let dyb2=y+10*pr;
-    font(9,700); txt('추가 서류', dRight2, dyb2, 9, ACCENT); dyb2+=dSH2;
-    for(const d of docsExtra2){
-      if(d.s){ font(8.5,700); txt(d.t, dRight2, dyb2, 8.5, GRN2); dyb2+=dSH2; }
-      else if(d.note){ font(7,400); txt(d.t, dRight2+4*pr, dyb2, 7, INK3); dyb2+=11*pr; }
-      else { font(8,400); txt('· '+d.t, dRight2+4*pr, dyb2, 8, INK3); dyb2+=dRH2; }
+  // 현금 결제 시: 계약금 / 잔금 안내
+  if(S.payMode==='cash'){
+    const cashDep=pF('cashDeposit');
+    if(cashDep>0){
+      const grand=parseFloat($('qGrandTotal').textContent.replace(/,/g,''))||0;
+      const cashH=52*pr;
+      fill(SLATE); ctx.fillRect(pad,y,cw,cashH);
+      fill(GRN);   ctx.fillRect(pad,y,3*pr,cashH);
+      font(9,700);  txC('계약금', pad+10*pr, y, cashH*0.5, 9, ACCENT);
+      font(12,900); txRC(won(cashDep), W-pad-10*pr, y, cashH*0.5, 12, GRN2);
+      font(8.5,400); txC('잔금 (출고 시)', pad+10*pr, y+cashH*0.5, cashH*0.5, 8.5, INK3);
+      font(10,700);  txRC(won(Math.max(0,grand-cashDep)), W-pad-10*pr, y+cashH*0.5, cashH*0.5, 10, INK2);
+      y += cashH + 12*pr;
     }
   }
-  y += docsH2 + 10*pr;
+  // 할부 시: 초기납부 요약
+  else if(S.payMode==='installment'){
+    const instDep=pF('instDeposit'), instDown=getInstDown();
+    const acqV=pF('acqTaxInput'), bV2=bondMode==='auto'?calcBondAuto():bondMode==='manual'?pF('bondCost'):0;
+    const regC=Math.round(acqV+bV2);
+    const miscC=Math.round(pF('plateCost')+pF('deliveryCost')+pF('etcCost'));
+    const aDown=_regIncluded?Math.max(0,instDown-(regC+miscC)):instDown;
+    // 선수금 0이면 계약금을 선수금으로 대체
+    const effDown3 = aDown>0 ? aDown : instDep;
+    const initCash = effDown3 + (_regIncluded?0:regC+miscC);
+    const descStr = aDown>0
+      ? `선수금 ${won(aDown)}  +  등록+부대 ${won(regC+miscC)}`
+      : `계약금 ${won(instDep)} (선수금)  +  등록+부대 ${won(regC+miscC)}`;
+    const initH=52*pr;
+    fill(SLATE); ctx.fillRect(pad,y,cw,initH);
+    fill(GRN);   ctx.fillRect(pad,y,3*pr,initH);
+    font(9,700);  txC('초기 납부 합계', pad+10*pr, y, initH*0.5, 9, ACCENT);
+    font(12,900); txRC(won(Math.round(initCash)), W-pad-10*pr, y, initH*0.5, 12, GRN2);
+    font(7.5,400); txC(descStr, pad+10*pr, y+initH*0.5, initH*0.5, 7.5, INK3);
+    y += initH + 12*pr;
+  }
 
+  // 서류 박스 - 공통(왼쪽) + 추가(오른쪽)
+  const docsCommon=[{t:'[공통 서류]',s:true},{t:'주민등록등본',s:false},
+    {t:'주민등록초본 (1년내 주소)',s:false},{t:'지방세 납세 증명서',s:false}];
+  const docsAdd=[];
+  if(subChecks.conv){docsAdd.push({t:'[전환지원금]',s:true});docsAdd.push({t:'가족관계증명서',s:false});docsAdd.push({t:'자동차 등록원부 갑부',s:false});}
+  if(subChecks.child2||subChecks.child3){docsAdd.push({t:'[다자녀]',s:true});docsAdd.push({t:'가족관계증명서',s:false});}
+  if(subChecks.first){docsAdd.push({t:'[생애첫차]',s:true});docsAdd.push({t:'지방세 세목별 미과세 증명서',s:false});docsAdd.push({t:'(취득·등록·자동차세/만18세부터)',s:false,note:true});}
+  const hasAdd=docsAdd.length>0;
+  const dSHx=17*pr, dRHx=14*pr, dNHx=11*pr, valHx=14*pr;
+  const lHx=12*pr+dSHx+docsCommon.reduce((a,d)=>a+(d.s?dSHx:dRHx),0)+valHx+8*pr;
+  const rHx=hasAdd?12*pr+dSHx+docsAdd.reduce((a,d)=>a+(d.s?dSHx:d.note?dNHx:dRHx),0)+8*pr:0;
+  const docsHx=Math.max(lHx,rHx||lHx);
+
+  fill(SLATE); ctx.fillRect(pad,y,cw,docsHx);
+  fill(GRN);   ctx.fillRect(pad,y,3*pr,docsHx);
+
+  const dLx=pad+10*pr, dRx=pad+cw/2+6*pr;
+  let dyL=y+12*pr;
+  for(const d of docsCommon){
+    if(d.s){font(8.5,700);txt(d.t,dLx,dyL,8.5,ACCENT);dyL+=dSHx;}
+    else{font(8,400);txt('· '+d.t,dLx+4*pr,dyL,8,INK3);dyL+=dRHx;}
+  }
+  font(7.5,600);txt('※ 유효기간: 발급 후 1개월 이내',dLx,dyL,7.5,INK3);
+
+  if(hasAdd){
+    let dyR=y+12*pr;
+    font(8.5,700);txt('[추가 서류]',dRx,dyR,8.5,ACCENT);dyR+=dSHx;
+    for(const d of docsAdd){
+      if(d.s){font(8,700);txt(d.t,dRx,dyR,8,GRN2);dyR+=dSHx;}
+      else if(d.note){font(7,400);txt(d.t,dRx+4*pr,dyR,7,INK3);dyR+=dNHx;}
+      else{font(8,400);txt('· '+d.t,dRx+4*pr,dyR,8,INK3);dyR+=dRHx;}
+    }
+  }
+  y += docsHx + 10*pr;
   // 절감 효과
   const savH=24*pr, sBoxH=40*pr;
   fill(GRN2+'22'); ctx.fillRect(pad, y, cw, savH);
@@ -2672,14 +2931,14 @@ function drawCanvas(ctx,W,pr,car,trim,color,lines,carImg){
 
   const sW3=Math.floor((cw-12*pr)/3);
   ['연간 절감','5년 절감','10년 절감'].forEach((lb,i)=>{
-    const bx=pad+i*(sW3+6*pr), bv=['165만원','825만원','1,650만원'][i];
+    const bx=pad+i*(sW3+6*pr), bv=[CONFIG.SAVE_YEAR,CONFIG.SAVE_5Y,CONFIG.SAVE_10Y][i];
     fill(SLATE); ctx.fillRect(bx, y, sW3, sBoxH);
     fill(GRN);   ctx.fillRect(bx, y, 3*pr, sBoxH);
     font(8,400);  txC(lb, bx+8*pr, y, sBoxH*0.45, 8, INK3);
     font(13,900); txRC(bv, bx+sW3-6*pr, y+sBoxH*0.45, sBoxH*0.55, 13, GRN2);
   });
   y += sBoxH + 8*pr;
-  font(8,400); txt('기준: 휘발유 1,700원 · 급속충전 347원/kWh · 가솔린 1,600cc 연비 12km/L · 전비 4.5km/kWh', pad, y, 8, INK3);
+  font(8,400); txt(CONFIG.SAVE_NOTE, pad, y, 8, INK3);
   y += 14*pr;
 
   y += pad;
@@ -2746,166 +3005,240 @@ function onCmpChange(){
 }
 
 // ── 비교 캔버스 렌더러 ──
-function drawCompareCanvas(ctx,W,pr,car,trim,color,carImg,months,rate,principal,dep,down,costLines){
-  // ── 팔레트: 화이트 + 차콜 + BYD그린 ──
+function drawCompareCanvas(ctx,W,pr,car,trim,color,carImg,months,rate,principal,dep,down,costLines,acqV,regM,subT2,plateV,deliveryV,etcV,acqBefore,acqReduce,subChecks){
   const BG='#ffffff', HERO_BG='#0d1117';
   const INK='#1a1a2e', INK2='#4a4a6a', INK3='#9090a8';
   const GRN='#00c86e', GRN2='#00a85c';
   const SLATE='#f0f2f6', SLATED='#e4e7ef', ACCENT='#1a1a2e';
+  const RED='#d63031';
 
   const fill=c=>{ctx.fillStyle=c;};
   const font=(sz,wt)=>{ctx.font=`${wt||400} ${Math.round(sz*pr)}px 'Noto Sans KR',sans-serif`;};
-  const txt=(t,x,yy,sz,c)=>{fill(c||INK);ctx.textAlign='left';ctx.fillText(String(t),x,yy+Math.round(sz*pr*0.78));};
-  const txtR=(t,x,yy,sz,c)=>{fill(c||INK);ctx.textAlign='right';ctx.fillText(String(t),x,yy+Math.round(sz*pr*0.78));ctx.textAlign='left';};
+  const tL=(t,x,y,h,sz,c)=>{fill(c||INK);ctx.textAlign='left';ctx.fillText(String(t),x,y+(h-sz*pr)/2+sz*pr*0.78);};
+  const tR=(t,x,y,h,sz,c)=>{fill(c||INK);ctx.textAlign='right';ctx.fillText(String(t),x,y+(h-sz*pr)/2+sz*pr*0.78);ctx.textAlign='left';};
+  const tC=(t,x,y,h,sz,c)=>{fill(c||INK);ctx.textAlign='center';ctx.fillText(String(t),x,y+(h-sz*pr)/2+sz*pr*0.78);ctx.textAlign='left';};
+  const hL=(t,x,y,sz,c)=>{fill(c||'#fff');ctx.textAlign='left';ctx.fillText(String(t),x,y+sz*pr*0.78);};
+  const hR=(t,x,y,sz,c)=>{fill(c||'#fff');ctx.textAlign='right';ctx.fillText(String(t),x,y+sz*pr*0.78);ctx.textAlign='left';};
+  const txt=(t,x,yy,sz,c)=>{fill(c||INK);ctx.textAlign='left';ctx.fillText(String(t),x,yy+sz*pr*0.78);};
   const won=n=>Math.round(n).toLocaleString('ko-KR')+'원';
-  const hln=(x1,x2,yy,c)=>{ctx.strokeStyle=c||SLATED;ctx.lineWidth=0.6*pr;ctx.beginPath();ctx.moveTo(x1,yy);ctx.lineTo(x2,yy);ctx.stroke();};
+  const hln=(x1,x2,y,c)=>{ctx.strokeStyle=c||SLATED;ctx.lineWidth=0.6*pr;ctx.beginPath();ctx.moveTo(x1,y);ctx.lineTo(x2,y);ctx.stroke();};
+  const vln=(x,y1,y2,c)=>{ctx.strokeStyle=c||SLATED;ctx.lineWidth=0.6*pr;ctx.beginPath();ctx.moveTo(x,y1);ctx.lineTo(x,y2);ctx.stroke();};
 
-  const pad=28*pr;
-  const cw=W-pad*2;
+  const pad=28*pr, cw=W-pad*2;
   let y=0;
+  fill(BG); ctx.fillRect(0,0,W,20000);
 
-  // 전체 배경
-  fill(BG); ctx.fillRect(0,0,W,10000*pr);
-
-  // ── 히어로 ──
-  const heroH=140*pr;
+  // ── 히어로 (단일 견적과 동일 스타일) ──
+  const heroH=160*pr;
   fill(HERO_BG); ctx.fillRect(0,0,W,heroH);
   if(carImg){
-    const iw=carImg.naturalWidth||carImg.width, ih=carImg.naturalHeight||carImg.height;
-    const scale=Math.max(W/iw,heroH/ih);
-    const sw=iw*scale,sh=ih*scale,sx=(W-sw)/2,sy=(heroH-sh)/2;
-    ctx.drawImage(carImg,sx,sy,sw,sh);
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0,0,W,heroH); ctx.clip();
+    const iw=carImg.naturalWidth||carImg.width||1;
+    const ih=carImg.naturalHeight||carImg.height||1;
+    const scale=Math.max(W/iw, heroH/ih);
+    const sw=iw*scale, sh=ih*scale;
+    const dx=(W-sw)/2, dy=(heroH-sh)/2;
+    ctx.drawImage(carImg, dx, dy, sw, sh);
     const grad=ctx.createLinearGradient(0,0,0,heroH);
-    grad.addColorStop(0,'rgba(13,17,23,0.55)');
-    grad.addColorStop(1,'rgba(13,17,23,0.90)');
+    grad.addColorStop(0,'rgba(13,17,23,0.60)');
+    grad.addColorStop(1,'rgba(13,17,23,0.92)');
     ctx.fillStyle=grad; ctx.fillRect(0,0,W,heroH);
+    ctx.restore();
   }
-  fill(GRN); ctx.fillRect(pad,14*pr,3*pr,22*pr);
-  font(16,900); txt('BYD',pad+9*pr,14*pr,16,'#ffffff');
-  font(7.5,400); txt('DEALER ESTIMATE · 개월수 비교 견적서',pad+9*pr,38*pr,7.5,'rgba(255,255,255,0.5)');
+  // BYD 워드마크
+  fill(GRN); ctx.fillRect(pad,16*pr,3*pr,20*pr);
+  font(16,900); txt('BYD',pad+9*pr,16*pr,16,'#ffffff');
+  font(7,400); txt('DEALER ESTIMATE · 개월수 비교 견적서',pad+9*pr,38*pr,7,'rgba(255,255,255,0.5)');
   const now=new Date();
   const ds=`${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')}`;
-  font(9,600); txtR(ds,W-pad,16*pr,9,'rgba(255,255,255,0.8)');
-  font(18,900); txt(car.name,pad,heroH-36*pr,18,'#ffffff');
-  font(8.5,400); txt(trim.name+' · '+trim.spec,pad,heroH-16*pr,8.5,'rgba(255,255,255,0.6)');
+  font(8.5,600); tR(ds,W-pad,16*pr,20*pr,8.5,'rgba(255,255,255,0.85)');
+  // 차량명 (히어로 하단)
+  font(17,900); txt(car.name,pad,heroH-42*pr,17,'#ffffff');
+  font(8,400);  txt(trim.name+' · '+trim.spec,pad,heroH-22*pr,8,'rgba(255,255,255,0.65)');
+  // 초록 하단 라인
   fill(GRN); ctx.fillRect(0,heroH,W,3*pr);
-  y=heroH+18*pr;
+  y=heroH+3*pr+18*pr;
 
-  // ── 공통 견적 요약 ──
-  const baseLines=costLines.filter(l=>!l.sec||['차량 가격','보조금 차감','등록비용','부대비용'].includes(l.sec));
-  const LINE_H=22*pr, SEC_H=24*pr;
+  // ── 가격 사항 ──
+  const SH=30*pr, RH=26*pr;
+  fill(ACCENT); ctx.fillRect(pad,y,cw,SH);
+  font(9,700); tL('■ 가격 사항',pad+12*pr,y,SH,9,'#ffffff');
+  y+=SH;
 
-  for(const row of baseLines){
-    if(row.sec){
-      fill(SLATE); ctx.fillRect(pad,y,cw,SEC_H);
-      fill(GRN);   ctx.fillRect(pad,y,3*pr,SEC_H);
-      font(8.5,800); txt(row.sec,pad+10*pr,y+4*pr,8.5,ACCENT);
-      y+=SEC_H+1*pr;
-    } else if(row.subtotal){
-      y+=4*pr;
-      font(9,700); txt(row.label,pad,y,9,INK);
-      font(9,800); txtR(row.val,pad+cw,y,9,ACCENT);
-      y+=18*pr;
-      hln(pad,pad+cw,y,SLATED); y+=8*pr;
-    } else if(row.subtotal2){
-      fill(SLATE); ctx.fillRect(pad,y,cw,18*pr);
-      fill(GRN);   ctx.fillRect(pad,y,3*pr,18*pr);
-      font(8,700); txt(row.label,pad+8*pr,y+2*pr,8,INK2);
-      font(8.5,800); txtR(row.val,pad+cw-4*pr,y+2*pr,8.5,INK);
-      y+=18*pr+2*pr;
-    } else if(row.costGrand){
-      y+=4*pr;
-      fill(SLATE); ctx.fillRect(pad,y,cw,26*pr);
-      fill(GRN);   ctx.fillRect(pad,y,3*pr,26*pr);
-      font(8.5,700); txt(row.label,pad+10*pr,y+4*pr,8.5,GRN2);
-      font(12,900); txtR(row.val,pad+cw-8*pr,y+4*pr,12,GRN2);
-      y+=26*pr+5*pr;
-    } else {
-      font(8.5,row.bold?700:400); txt(row.label,pad,y,8.5,row.bold?INK:INK3);
-      font(8.5,row.bold?800:500); txtR(row.val||'–',pad+cw,y,8.5,row.bold?ACCENT:INK2);
-      y+=LINE_H; fill(SLATED); ctx.fillRect(pad,y-0.5*pr,cw,0.5*pr);
-    }
+  const LC=pad, RC=pad+cw*0.5;
+  const CW1=cw*0.5, CW2=cw*0.5;
+  const netC=Math.max(0,trim.price-subT2);
+
+  const leftItems=[
+    {label:'기본 차량가', val:won(trim.price), color:INK2},
+    {label:'보조금 합계', val:'-'+won(subT2), color:RED},
+  ];
+  const rightItems=[
+    {label:'취등록세  (-140만원 감면)', val:won(acqV), color:INK2},
+    {label:'등록 부대비용', val:won(plateV), color:INK2},
+    {label:'탁송료', val:won(deliveryV), color:INK2},
+  ];
+  if(etcV>0){ rightItems.push({label:'기타',val:won(etcV),color:INK2}); leftItems.push({label:'',val:'',color:''}); }
+
+  const nRows=Math.max(leftItems.length,rightItems.length);
+  for(let i=0;i<nRows;i++){
+    const li=leftItems[i]||{label:'',val:'',color:''};
+    const ri=rightItems[i]||{label:'',val:'',color:''};
+    fill(i%2===0?SLATE:'#f5f6f8'); ctx.fillRect(LC,y,CW1,RH);
+    fill(i%2===0?'#ffffff':'#f9fafb'); ctx.fillRect(RC,y,CW2,RH);
+    if(li.label){ font(8,400); tL(li.label,LC+10*pr,y,RH,8,INK3); font(8.5,600); tR(li.val,LC+CW1-8*pr,y,RH,8.5,li.color); }
+    if(ri.label){ font(8,400); tL(ri.label,RC+10*pr,y,RH,8,INK3); font(8.5,600); tR(ri.val,RC+CW2-8*pr,y,RH,8.5,ri.color); }
+    hln(pad,pad+cw,y+RH,SLATED); vln(RC,y,y+RH,SLATED); y+=RH;
   }
 
-  y+=16*pr;
+  // 순차량가 / 등록비용합계
+  const TH=30*pr;
+  fill(SLATE); ctx.fillRect(LC,y,CW1,TH);
+  fill(ACCENT); ctx.fillRect(LC,y,3*pr,TH);
+  font(8,600); tL('순 차량가',LC+10*pr,y,TH,8,INK2);
+  font(10,900); tR(won(netC),LC+CW1-8*pr,y,TH,10,ACCENT);
+  fill(SLATE); ctx.fillRect(RC,y,CW2,TH);
+  fill(GRN); ctx.fillRect(RC,y,3*pr,TH);
+  font(8,600); tL('등록비용 합계',RC+10*pr,y,TH,8,INK2);
+  font(10,800); tR(won(regM),RC+CW2-8*pr,y,TH,10,GRN2);
+  hln(pad,pad+cw,y+TH,SLATED); vln(RC,y,y+TH,SLATED); y+=TH;
 
-  // ── 개월수 비교 헤더 ──
-  fill(ACCENT); ctx.fillRect(pad,y,cw,30*pr);
-  font(10,800); txt('개월수별 할부 납입 비교',pad+14*pr,y+7*pr,10,'#ffffff');
-  font(8,400); txtR(`할부원금 ${won(Math.round(principal))} · 금리 ${rate===0?'무이자':rate+'%'} (연)`,pad+cw-14*pr,y+18*pr,8,'rgba(255,255,255,0.6)');
-  y+=30*pr+14*pr;
+  // 계약금 (오른쪽 별도행)
+  fill(SLATE); ctx.fillRect(LC,y,CW1,RH);
+  fill('#ffffff'); ctx.fillRect(RC,y,CW2,RH);
+  font(8,400); tL('계약금',RC+10*pr,y,RH,8,INK3);
+  font(8.5,600); tR(won(dep),RC+CW2-8*pr,y,RH,8.5,INK2);
+  hln(pad,pad+cw,y+RH,SLATED); vln(RC,y,y+RH,SLATED); y+=RH;
 
-  // ── 비교 컬럼 ──
+  // 총 예상 구매금액
+  const GT=34*pr;
+  fill(ACCENT); ctx.fillRect(pad,y,cw,GT);
+  font(8.5,600); tL('총 예상 구매금액  (순차량가 + 등록비용)',pad+12*pr,y,GT,8.5,'rgba(255,255,255,0.75)');
+  font(12,900); tR(won(netC+regM),pad+cw-12*pr,y,GT,12,'#ffffff');
+  y+=GT+22*pr;
+
+  // ── 계약 조건 비교 ──
+  fill(ACCENT); ctx.fillRect(pad,y,cw,SH);
+  font(9,700); tL('■ 계약 조건 비교',pad+12*pr,y,SH,9,'#ffffff');
+  y+=SH;
+
   const n=months.length;
-  const colGap=14*pr;
-  const colW=Math.floor((cw-(n-1)*colGap)/n);
-  const COL_H=220*pr;
+  const labelW=Math.round(cw*0.26);
+  const dataW=Math.floor((cw-labelW)/n);
+  const HEADER_H=36*pr, ROW_H=28*pr, MONO_H=44*pr;
 
+  fill(SLATE); ctx.fillRect(pad,y,labelW,HEADER_H);
+  font(8.5,700); tC('구분',pad+labelW/2,y,HEADER_H,8.5,INK2);
+  vln(pad+labelW,y,y+HEADER_H,SLATED);
   months.forEach((m,i)=>{
-    const cx=pad+i*(colW+colGap);
-    const monthly=pmt(principal,rate,m);
-    const totalInterest=Math.max(0,monthly*m-principal);
-    const totalPay=monthly*m;
-    const totalBurden=monthly*m+dep+down;
-
-    // 컬럼 배경
-    fill(SLATE); ctx.fillRect(cx,y,colW,COL_H);
-
-    // 컬럼 헤더
-    fill(ACCENT); ctx.fillRect(cx,y,colW,30*pr);
-    font(13,900);
-    ctx.fillStyle='#ffffff'; ctx.textAlign='center';
-    ctx.fillText(m+'개월',cx+colW/2,y+7*pr+Math.round(13*pr*0.78));
-    ctx.textAlign='left';
-
-    let cy=y+36*pr;
-
-    // 월납입금
-    font(7.5,400); txt('월 납입금 (원리금균등)',cx+10*pr,cy,7.5,INK3); cy+=13*pr;
-    fill(GRN); ctx.fillRect(cx,cy-2*pr,colW,32*pr);
-    font(15,900);
-    ctx.fillStyle='#ffffff'; ctx.textAlign='right';
-    ctx.fillText(won(Math.round(monthly)),cx+colW-10*pr,cy+Math.round(15*pr*0.78));
-    ctx.textAlign='left';
-    cy+=36*pr;
-
-    hln(cx+8*pr,cx+colW-8*pr,cy,SLATED); cy+=6*pr;
-
-    // 상세 항목
-    const rows2=[
-      {l:'할부원금',    v:won(Math.round(principal)),  bold:false},
-      {l:'이자 합계',   v:won(Math.round(totalInterest)), bold:false},
-      {l:'할부 총납입', v:won(Math.round(totalPay)),   bold:true},
-    ];
-    rows2.forEach(r=>{
-      font(8,r.bold?700:400); txt(r.l,cx+10*pr,cy,8,r.bold?INK:INK3);
-      font(8,r.bold?900:500); txtR(r.v,cx+colW-10*pr,cy,8,r.bold?ACCENT:INK2);
-      cy+=17*pr; hln(cx+8*pr,cx+colW-8*pr,cy-0.5*pr,r.bold?SLATED:'rgba(0,0,0,0.04)');
-    });
-
-    cy+=8*pr;
-
-    // 총부담 강조박스
-    fill(ACCENT); ctx.fillRect(cx+6*pr,cy,colW-12*pr,36*pr);
-    font(7.5,400);
-    ctx.fillStyle='rgba(255,255,255,0.65)'; ctx.textAlign='center';
-    ctx.fillText('초기비용 포함 총부담',cx+colW/2,cy+6*pr+Math.round(7.5*pr*0.78));
-    font(12,900);
-    ctx.fillStyle=GRN; ctx.textAlign='center';
-    ctx.fillText(won(Math.round(totalBurden)),cx+colW/2,cy+18*pr+Math.round(12*pr*0.78));
-    ctx.textAlign='left';
+    const cx=pad+labelW+i*dataW;
+    fill(i%2===0?'#eef0f5':SLATE); ctx.fillRect(cx,y,dataW,HEADER_H);
+    font(12,900); tC(m+'개월',cx+dataW/2,y,HEADER_H,12,ACCENT);
+    if(i<n-1) vln(cx+dataW,y,y+HEADER_H,SLATED);
   });
+  hln(pad,pad+cw,y+HEADER_H,SLATED); y+=HEADER_H;
 
-  y+=COL_H+14*pr;
+  const row=(label,vals,opt={})=>{
+    const rh=opt.h||ROW_H;
+    if(opt.accent){
+      fill(ACCENT); ctx.fillRect(pad,y,labelW,rh);
+      font(opt.lsz||8.5,700); tC(label,pad+labelW/2,y,rh,opt.lsz||8.5,'rgba(255,255,255,0.85)');
+    } else {
+      fill(SLATE); ctx.fillRect(pad,y,labelW,rh);
+      font(opt.lsz||8,600); tC(label,pad+labelW/2,y,rh,opt.lsz||8,INK2);
+    }
+    vln(pad+labelW,y,y+rh,SLATED);
+    vals.forEach((v,i)=>{
+      const cx=pad+labelW+i*dataW;
+      fill(opt.accent?GRN:(i%2===0?'#ffffff':SLATE)); ctx.fillRect(cx,y,dataW,rh);
+      font(opt.vsz||8.5,opt.bold?900:500);
+      tC(v,cx+dataW/2,y,rh,opt.vsz||8.5,opt.accent?'#ffffff':opt.bold?ACCENT:INK2);
+      if(i<n-1) vln(cx+dataW,y,y+rh,SLATED);
+    });
+    hln(pad,pad+cw,y+rh,SLATED); y+=rh;
+  };
 
-  // 주석
-  font(7.5,400); txt(`계약금 ${won(dep)} · 선수금 ${won(down)} 포함 계산`,pad,y,7.5,INK3); y+=14*pr;
+  const downPctStr=netC>0&&down>0?Math.round(down/netC*100)+'%':'0%';
+  row('선수금', months.map(()=>down>0?`${downPctStr}  ${won(down)}`:'없음'));
+  row('할부원금', months.map(()=>won(principal)),{bold:true});
+  row('이용기간', months.map(m=>m+'개월'));
+  row('금리', months.map(()=>rate===0?'무이자':rate.toFixed(1)+'%'));
+  row('월 납입금', months.map(m=>won(Math.round(pmt(principal,rate,m)))),
+    {accent:true,bold:true,h:MONO_H,vsz:13,lsz:9});
 
-  return y+pad*2;
+  // 초기납입 합계
+  const initCash=down>0?down+regM:dep+regM;
+  const initH=52*pr;
+  fill(SLATE); ctx.fillRect(pad,y,labelW,initH);
+  fill(GRN); ctx.fillRect(pad,y,3*pr,initH);
+  font(8,700); tC('초기납입 합계',pad+labelW/2,y,initH,8,ACCENT);
+  vln(pad+labelW,y,y+initH,SLATED);
+  months.forEach((m,i)=>{
+    const cx=pad+labelW+i*dataW;
+    fill(i%2===0?'#ffffff':SLATE); ctx.fillRect(cx,y,dataW,initH);
+    const d1=down>0?`선수금 ${won(down)} (계약금 포함)`:`계약금 ${won(dep)}`;
+    const d2=`+ 등록비용 ${won(regM)}`;
+    const total=initCash;
+    font(6.5,400); tC(d1,cx+dataW/2,y+5*pr,initH*0.32,6.5,INK3);
+    font(6.5,400); tC(d2,cx+dataW/2,y+initH*0.36,initH*0.25,6.5,INK3);
+    font(10,800);  tC(won(total),cx+dataW/2,y+initH*0.61,initH*0.39,10,ACCENT);
+    if(i<n-1) vln(cx+dataW,y,y+initH,SLATED);
+  });
+  hln(pad,pad+cw,y+initH,SLATED); y+=initH+16*pr;
+
+  // ── 전기차 절감 효과 ──
+  const savH=22*pr, sBoxH=36*pr;
+  fill(GRN2+'22'); ctx.fillRect(pad,y,cw,savH);
+  fill(GRN); ctx.fillRect(pad,y,3*pr,savH);
+  font(8,800); tL('⚡ 가솔린 대비 전기차 절감 효과 (연 20,000km 기준)',pad+10*pr,y,savH,8,GRN2);
+  y+=savH+6*pr;
+  const sW3=Math.floor((cw-8*pr)/3);
+  ['연간 절감','5년 절감','10년 절감'].forEach((lb,i)=>{
+    const bx=pad+i*(sW3+4*pr), bv=[CONFIG.SAVE_YEAR,CONFIG.SAVE_5Y,CONFIG.SAVE_10Y][i];
+    fill(SLATE); ctx.fillRect(bx,y,sW3,sBoxH);
+    font(7.5,400); tC(lb,bx+sW3/2,y,sBoxH*0.44,7.5,INK3);
+    font(12,900); tC(bv,bx+sW3/2,y+sBoxH*0.44,sBoxH*0.56,12,GRN2);
+  });
+  y+=sBoxH+6*pr;
+  font(7,400); txt(CONFIG.SAVE_NOTE,pad,y,7,INK3);
+  y+=16*pr+14*pr;
+
+  // ── 서류 안내 ──
+  const docsCommon=[{t:'[공통 서류]',s:true},{t:'주민등록등본',s:false},{t:'주민등록초본 (1년내 주소)',s:false},{t:'지방세 납세 증명서',s:false}];
+  const docsAdd=[];
+  if(subChecks&&subChecks.conv){docsAdd.push({t:'[전환지원금]',s:true});docsAdd.push({t:'가족관계증명서',s:false});docsAdd.push({t:'자동차 등록원부 갑부',s:false});}
+  if(subChecks&&(subChecks.child2||subChecks.child3)){docsAdd.push({t:'[다자녀]',s:true});docsAdd.push({t:'가족관계증명서',s:false});}
+  if(subChecks&&subChecks.first){docsAdd.push({t:'[생애첫차]',s:true});docsAdd.push({t:'지방세 세목별 미과세 증명서',s:false});docsAdd.push({t:'(취득·등록·자동차세/만18세부터)',s:false,note:true});}
+  const hasAdd=docsAdd.length>0;
+  const dSH=17*pr, dRH=14*pr, dNH=11*pr, valH=14*pr;
+  const lH=12*pr+dSH+docsCommon.reduce((a,d)=>a+(d.s?dSH:dRH),0)+valH+8*pr;
+  const rH=hasAdd?12*pr+dSH+docsAdd.reduce((a,d)=>a+(d.s?dSH:d.note?dNH:dRH),0)+8*pr:0;
+  const docsH=Math.max(lH,rH||lH);
+
+  fill(SLATE); ctx.fillRect(pad,y,cw,docsH);
+  fill(GRN); ctx.fillRect(pad,y,3*pr,docsH);
+
+  const dLx=pad+10*pr, dRx=pad+cw/2+6*pr;
+  let dyL=y+12*pr;
+  for(const d of docsCommon){
+    if(d.s){font(8.5,700);txt(d.t,dLx,dyL,8.5,ACCENT);dyL+=dSH;}
+    else{font(8,400);txt('· '+d.t,dLx+4*pr,dyL,8,INK3);dyL+=dRH;}
+  }
+  font(7.5,600);txt('※ 유효기간: 발급 후 1개월 이내',dLx,dyL,7.5,INK3);
+
+  if(hasAdd){
+    let dyR=y+12*pr;
+    font(8.5,700);txt('[추가 서류]',dRx,dyR,8.5,ACCENT);dyR+=dSH;
+    for(const d of docsAdd){
+      if(d.s){font(8,700);txt(d.t,dRx,dyR,8,GRN2);dyR+=dSH;}
+      else if(d.note){font(7,400);txt(d.t,dRx+4*pr,dyR,7,INK3);dyR+=dNH;}
+      else{font(8,400);txt('· '+d.t,dRx+4*pr,dyR,8,INK3);dyR+=dRH;}
+    }
+  }
+  y+=docsH+pad*2;
+  return y;
 }
-
-
-
 
 function showOverlay(msg){$('overlayMsg').textContent=msg;$('overlay').classList.add('show');}
 function hideOverlay(){$('overlay').classList.remove('show');}
@@ -2948,22 +3281,29 @@ async function renderCompareCanvas(months){
     img.src=src;
   });
 
-  const dep   = pF('instDeposit');
-  const down  = pF('instDown');
-  const rate  = parseFloat($('instRateDirect')?.value)||0;
-  const principal = pF('instPrincipalDirect')||getInstGrand()-dep-down;
+  // 공통 함수로 계산값 가져오기 (calc/drawCanvasTwoCol 과 동일 로직 보장)
+  const {dep, actualDown:down, netCar:_netCar, regMisc:_regMisc2, principal, rate, acqV:_acqV} = getInstCalcValues();
   const lines = buildQuoteLines();
   const colN  = months.length;
   const W     = (colN===2?720:colN===3?980:720)*pr;
 
   const tmp=document.createElement('canvas');tmp.width=W;tmp.height=10000*pr;
   const tc=tmp.getContext('2d');
-  const h=drawCompareCanvas(tc,W,pr,car,trim,color,carImg,months,rate,principal,dep,down,lines);
+  // _acqV는 getInstCalcValues()에서 이미 받음
+  const _bV=bondMode==='auto'?calcBondAuto():bondMode==='manual'?pF('bondCost'):0;
+  const _plate=pF('plateCost');
+  const _delivery=pF('deliveryCost');
+  const _etc=pF('etcCost');
+  const _regM=Math.round(_acqV+_bV+_plate+_delivery+_etc);
+  const _subT=(pF('subTotal')||0)*10000||(((pF('subNat')||0)+(pF('subLoc')||0))*10000);
+  const _acqBefore=Math.round(pF('carPrice')/1.1*0.07);
+  const _acqReduce=1400000;
+  const h=drawCompareCanvas(tc,W,pr,car,trim,color,carImg,months,rate,principal,dep,down,lines,_acqV,_regM,_subT,_plate,_delivery,_etc,_acqBefore,_acqReduce,subChecks);
 
   const canvas=document.createElement('canvas');
   canvas.width=W;canvas.height=Math.ceil(h)+30*pr;
   const ctx=canvas.getContext('2d');
-  drawCompareCanvas(ctx,W,pr,car,trim,color,carImg,months,rate,principal,dep,down,lines);
+  drawCompareCanvas(ctx,W,pr,car,trim,color,carImg,months,rate,principal,dep,down,lines,_acqV,_regM,_subT,_plate,_delivery,_etc,_acqBefore,_acqReduce,subChecks);
   return canvas;
 }
 function ivClose(){$('iv').classList.remove('show');}
@@ -3048,7 +3388,7 @@ function showShareModal(){
 function ivPrint(){
   const win=window.open('','_blank');
   if(!win){showToast('팝업 차단됨 — 팝업 허용 후 재시도');return;}
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${ivFname}</title><style>*{margin:0;padding:0;}body{background:#fff;}img{width:100%;display:block;}@media print{@page{size:A4;margin:8mm;}}</style></head><body><img src="${ivDataURL}"><script>window.onload=()=>window.print();<\/script></body></html>`);
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${ivFname}</title><style>*{margin:0;padding:0;}body{background:#fff;}img{width:100%;display:block;}@media print{@page{size:A4;margin:8mm;}}</style></head><body><img src="${ivDataURL}"><scr`+`ipt>window.onload=()=>window.print();<\/script></body></html>`);
   win.document.close();
 }
 
@@ -3070,10 +3410,10 @@ function resetAll(){
   onCmpChange();
   // 콤마 포맷 기본값 재적용
   const fmt=v=>v.toLocaleString('ko-KR');
-  if($('plateCost'))    $('plateCost').value    =fmt(78500);
-  if($('deliveryCost')) $('deliveryCost').value =fmt(84150);
-  if($('cashDeposit'))  $('cashDeposit').value  =fmt(300000);
-  if($('instDeposit'))  $('instDeposit').value  =fmt(300000);
+  if($('plateCost'))    $('plateCost').value    =fmt(CONFIG.PLATE_COST);
+  if($('deliveryCost')) $('deliveryCost').value =fmt(CONFIG.DELIVERY_COST);
+  if($('cashDeposit'))  $('cashDeposit').value  =fmt(CONFIG.DEFAULT_DEPOSIT);
+  if($('instDeposit'))  $('instDeposit').value  =fmt(CONFIG.DEFAULT_DEPOSIT);
   // 선수금 셀렉트 리셋
   if($('downPctSel'))  { $('downPctSel').value='0'; onDownPctChange(); }
   if($('instDown'))    $('instDown').value='0';
