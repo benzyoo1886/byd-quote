@@ -672,6 +672,7 @@ input:-webkit-autofill{ -webkit-box-shadow:0 0 0 1000px var(--s2) inset; -webkit
 </head>
 <body>
 
+
 <!-- 헤더 -->
 <header class="hd">
   <div class="hd-logo">
@@ -1259,7 +1260,7 @@ const CARS = {
     ],
     colorsByTrim:[
       [{name:"코스모스 블랙",hex:"#1a1a22"},{name:"타임 그레이",hex:"#8a9aaa"},
-       {name:"스키 화이트",hex:"#e8edf2"},{name:"서프 블루",hex:"#1a90d9"}]
+       {name:"스키 화이트",hex:"#e8edf2"},{name:"아틀란티스 그레이",hex:"#6b7e8a"}]
     ]
   },
   seal:{
@@ -1297,7 +1298,7 @@ const SUBSIDY_DB = {
   "서울":{
     dolphin_0:  [1090000, 320000, 280000],  // DOLPHIN
     dolphin_1:  [1320000, 390000, 340000],  // DOLPHIN Active
-    atto3_1:    [1260000, 370000, 330000],  // ATTO 3 Plus
+    atto3_0:    [1260000, 370000, 330000],  // ATTO 3 Plus
     seal_0:     [1690000, 500000, 440000],  // SEAL RWD
     seal_1:     [1690000, 500000, 440000],  // SEAL Plus
     seal_2:     [1510000, 450000, 390000],  // SEAL AWD
@@ -1307,7 +1308,7 @@ const SUBSIDY_DB = {
   "인천":{
     dolphin_0:  [1090000, 320000, 280000],
     dolphin_1:  [1320000, 390000, 340000],
-    atto3_1:    [1260000, 370000, 320000],
+    atto3_0:    [1260000, 370000, 320000],
     seal_0:     [1690000, 450000, 440000],
     seal_1:     [1690000, 450000, 440000],
     seal_2:     [1510000, 500000, 390000],
@@ -1317,7 +1318,7 @@ const SUBSIDY_DB = {
   "김포":{
     dolphin_0:  [1090000, 430000, 290000],
     dolphin_1:  [1320000, 520000, 340000],
-    atto3_1:    [1260000, 500000, 330000],
+    atto3_0:    [1260000, 500000, 330000],
     seal_0:     [1690000, 670000, 440000],
     seal_1:     [1690000, 670000, 440000],
     seal_2:     [1510000, 600000, 390000],
@@ -1349,7 +1350,7 @@ const CONFIG = {
 const NAT_SUBSIDY = {
   dolphin_0:  1090000,  // DOLPHIN
   dolphin_1:  1320000,  // DOLPHIN Active
-  atto3_1:    1260000,  // ATTO 3 Plus
+  atto3_0:    1260000,  // ATTO 3 Plus
   seal_0:     1690000,  // SEAL RWD
   seal_1:     1690000,  // SEAL Plus
   seal_2:     1510000,  // SEAL AWD
@@ -1531,7 +1532,21 @@ function renderTrims(){
   const car=CARS[S.carKey];const list=$('trimList');list.innerHTML='';
   car.trims.forEach((t,i)=>{
     const d=document.createElement('div');d.className='trim-item'+(i===S.trimIdx?' active':'');
-    d.innerHTML=`<div class="trim-l"><div class="trim-radio"></div><div><div class="trim-name">${t.name}</div><div class="trim-spec">${t.spec}</div></div></div><div class="trim-price">${won(t.price)}</div>`;
+    d.innerHTML=`
+      <div class="trim-l"><div class="trim-radio"></div><div>
+        <div class="trim-name">${t.name}</div>
+        <div class="trim-spec">${t.spec}</div>
+      </div></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+        <input type="text" inputmode="numeric"
+          onclick="event.stopPropagation()"
+          onfocus="event.stopPropagation();this.select()"
+          onblur="onTrimPriceEdit(event,'${S.carKey}',${i})"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
+          value="${(t.price/10000).toLocaleString('ko-KR')}"
+          style="width:90px;text-align:right;padding:4px 8px;background:rgba(0,200,110,0.1);border:1px solid rgba(0,200,110,0.3);border-radius:6px;color:#00c86e;font-size:14px;font-weight:700;font-family:inherit;">
+        <span style="font-size:10px;color:#555;">만원 (탭해서 수정)</span>
+      </div>`;
     d.onclick=()=>{S.trimIdx=i;if(!acqManual)$('acqTaxInput').value='';const pEl=$('instPrincipalDirect');if(pEl)pEl.value='';renderTrims();renderColors();onRegionChange();onDownPctChange();calc();};
     list.appendChild(d);
   });
@@ -3392,6 +3407,27 @@ function showToast(msg){
 }
 
 // ── 초기화 ──
+
+
+// ── 트림 가격 인라인 수정 ──────────────────────────────────
+function onTrimPriceEdit(e, carKey, trimIdx){
+  const val = parseInt(e.target.value.replace(/,/g,''));
+  if(isNaN(val) || val <= 0){ 
+    // 잘못된 입력 → 원래 값 복원
+    e.target.value = (CARS[carKey].trims[trimIdx].price/10000).toLocaleString('ko-KR');
+    return;
+  }
+  const newPrice = val * 10000;
+  if(CARS[carKey].trims[trimIdx].price === newPrice) return;
+  CARS[carKey].trims[trimIdx].price = newPrice;
+  // 취등록세 재계산
+  acqManual = false;
+  if($('acqTaxInput')) $('acqTaxInput').value = '';
+  calc();
+  showToast(`${CARS[carKey].trims[trimIdx].name} 가격 ${val.toLocaleString()}만원으로 변경 ✅`);
+}
+
+
 function resetAll(){
   S={carKey:null,trimIdx:0,colorIdx:0,payMode:'cash'};
   subChecks={child2:false,child3:false,first:false,conv:false};bondMode='exempt';acqManual=false;
