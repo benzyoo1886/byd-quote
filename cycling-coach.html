@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Cycling Coach</title>
+<style>
+:root{--bg:#080d16;--card:#0f1724;--border:#1e293b;--ibg:#1a2332;--amber:#f59e0b;--green:#22c55e;--red:#ef4444;--blue:#3b82f6;--text:#e2e8f0;--muted:#94a3b8;--dim:#64748b}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI',sans-serif;font-size:14px;line-height:1.5;min-height:100vh}
+.wrap{max-width:660px;margin:0 auto;padding:16px}
+.header{display:flex;align-items:center;gap:10px;padding:16px 0 12px;border-bottom:1px solid var(--border);margin-bottom:16px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--amber);box-shadow:0 0 8px #f59e0b88}
+.htitle{font-size:17px;font-weight:700;color:var(--amber)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:18px;margin-bottom:14px}
+.ct{font-size:12px;font-weight:700;margin-bottom:14px;letter-spacing:.04em;text-transform:uppercase}
+.ct-a{color:var(--amber)}.ct-b{color:var(--blue)}.ct-g{color:var(--green)}.ct-r{color:var(--red)}.ct-p{color:#a78bfa}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fi label{display:block;font-size:11px;color:var(--dim);margin-bottom:4px}
+.fi input,.fi select{width:100%;background:var(--ibg);border:1px solid var(--border);border-radius:4px;padding:8px 10px;color:var(--text);font-size:14px;outline:none}
+.fi select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:30px}
+.fi select option{background:var(--ibg);color:var(--text)}
+.fi input:focus,.fi select:focus{border-color:var(--amber)}
+.btn{width:100%;padding:12px;margin-top:14px;background:var(--amber);color:#080d16;border:none;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer}
+.btn:hover{opacity:.9}
+.btn-b{background:var(--blue)}.btn-r{background:var(--red)}.btn-p{background:#a78bfa}
+.sr{display:grid;gap:8px;margin-bottom:12px}
+.sr2{grid-template-columns:1fr 1fr}.sr3{grid-template-columns:1fr 1fr 1fr}.sr4{grid-template-columns:1fr 1fr 1fr 1fr}
+.st{text-align:center;padding:8px 4px}
+.st .lb{font-size:10px;color:var(--dim);margin-bottom:3px}
+.st .vl{font-size:20px;font-weight:700}
+.st .u{font-size:11px;font-weight:400;color:var(--dim);margin-left:2px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:7px 6px;border-bottom:1px solid var(--border);color:var(--muted);font-weight:600;font-size:11px;white-space:nowrap}
+td{padding:7px 6px;border-bottom:1px solid #1a2332;color:var(--text);vertical-align:middle}
+td:first-child{color:var(--amber);font-weight:600}
+td input,td select{background:var(--ibg);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text);font-size:12px;outline:none}
+td input{width:50px;text-align:right}
+td select{width:100%;min-width:100px;font-size:11px;appearance:none;-webkit-appearance:none;padding-right:18px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 4px center}
+td select option{background:var(--ibg);color:var(--text)}
+td input:focus,td select:focus{border-color:var(--amber)}
+.note{font-size:11px;color:var(--muted);line-height:1.7;margin-top:10px;padding:10px;background:var(--ibg);border-radius:6px}
+.badge{display:inline-block;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:700}
+.b-g{background:#22c55e22;color:var(--green)}.b-y{background:#eab30822;color:var(--amber)}.b-r{background:#ef444422;color:var(--red)}.b-p{background:#a78bfa22;color:#a78bfa}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto}
+.tab{padding:10px 12px;border:none;background:transparent;color:var(--muted);font-size:13px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+.tab.active{color:var(--amber);border-bottom-color:var(--amber);font-weight:700}
+.hidden{display:none}
+.zr{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}
+.zr:last-child{border-bottom:none}
+.zd{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.zn{flex:1;font-size:12px}.zw{font-size:12px;color:var(--amber);font-weight:600}.zp{font-size:11px;color:var(--dim);width:55px;text-align:right}
+.int-sel{display:flex;gap:6px;margin-bottom:4px}
+.int-btn{flex:1;padding:10px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;text-align:center}
+.int-btn.active{border-color:var(--amber);color:var(--amber);background:#f59e0b11}
+.dur-wrap{display:flex;align-items:center;gap:6px}
+.dur-wrap input{width:50px;text-align:center}
+.dur-wrap span{color:var(--dim);font-size:12px}
+.cal-box{border-radius:8px;padding:16px;margin-bottom:12px}
+.cal-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:13px}
+.cal-row.total{border-top:2px solid var(--amber);margin-top:6px;padding-top:10px;font-weight:700;font-size:15px}
+.nut-box{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:12px}
+.nut-item{background:var(--ibg);border-radius:8px;padding:12px;text-align:center}
+.nut-item .nt{font-size:10px;color:var(--dim);margin-bottom:4px}
+.nut-item .nv{font-size:22px;font-weight:700}
+.nut-item .nu{font-size:11px;color:var(--dim)}
+.brief{background:var(--ibg);border-left:3px solid var(--amber);padding:12px 14px;margin:10px 0;font-size:13px;line-height:1.8;color:var(--text)}
+.brief.red{border-color:var(--red)}.brief.green{border-color:var(--green)}.brief.blue{border-color:var(--blue)}.brief.purple{border-color:#a78bfa}
+.brief strong{font-weight:700}
+.footer{text-align:center;padding:24px 0 40px;font-size:10px;color:#334155}
+.del-btn{background:none;border:none;color:var(--red);cursor:pointer;font-size:11px;padding:2px 6px}
+@media(max-width:420px){.fg{grid-template-columns:1fr}.sr4{grid-template-columns:1fr 1fr}.nut-box{grid-template-columns:1fr 1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="header"><div class="dot"></div><div class="htitle">CYCLING COACH</div></div>
+<div class="card">
+  <div class="sr sr4">
+    <div class="st"><div class="lb">체중</div><div class="vl" id="ds-w">73<span class="u">kg</span></div></div>
+    <div class="st"><div class="lb">FTP</div><div class="vl" style="color:var(--amber)" id="ds-f">225<span class="u">W</span></div></div>
+    <div class="st"><div class="lb">W/kg</div><div class="vl" id="ds-wk">3.08</div></div>
+    <div class="st"><div class="lb">목표</div><div class="vl" style="color:var(--blue)" id="ds-t">68<span class="u">kg</span></div></div>
+  </div>
+</div>
+<div class="tabs">
+  <button class="tab active" data-tab="setup">프로필</button>
+  <button class="tab" data-tab="postride">Post-Ride</button>
+  <button class="tab" data-tab="timeline">라이딩 플랜</button>
+  <button class="tab" data-tab="history">기록</button>
+  <button class="tab" data-tab="zones">파워 존</button>
+</div>
+
+<!-- PROFILE -->
+<div id="tab-setup">
+  <div class="card">
+    <div class="ct ct-a">■ 내 프로필</div>
+    <div class="fg">
+      <div class="fi"><label>현재 체중 (kg)</label><input id="in-w" type="text" inputmode="decimal" value="73"></div>
+      <div class="fi"><label>목표 체중 (kg)</label><input id="in-tw" type="text" inputmode="decimal" value="68"></div>
+      <div class="fi"><label>FTP (W)</label><input id="in-ftp" type="text" inputmode="decimal" value="225"></div>
+      <div class="fi"><label>최대 심박수</label><input id="in-hr" type="text" inputmode="decimal" value="185"></div>
+    </div>
+    <button class="btn" id="btn-save-profile" style="background:var(--green)">프로필 저장</button>
+  </div>
+</div>
+
+<!-- POST-RIDE ANALYSIS -->
+<div id="tab-postride" class="hidden">
+  <div class="card">
+    <div class="ct ct-p">■ Post-Ride 데이터 입력</div>
+    <div class="note" style="margin-top:0;margin-bottom:12px">라이딩 종료 후 실제 데이터를 입력하세요. NP를 모르면 평균 파워를 입력하세요.</div>
+    <div class="fg">
+      <div class="fi">
+        <label>실제 주행 시간</label>
+        <div class="dur-wrap">
+          <input id="pr-dh" type="text" inputmode="numeric" placeholder="0"><span>시간</span>
+          <input id="pr-dm" type="text" inputmode="numeric" placeholder="0"><span>분</span>
+        </div>
+      </div>
+      <div class="fi"><label>실제 NP (W)</label><input id="pr-np" type="text" inputmode="decimal" placeholder="정규화 파워"></div>
+      <div class="fi"><label>평균 파워 (W)</label><input id="pr-ap" type="text" inputmode="decimal" placeholder="NP 모를 때"></div>
+      <div class="fi"><label>평균 심박수 (bpm)</label><input id="pr-hr" type="text" inputmode="decimal" placeholder="선택"></div>
+      <div class="fi"><label>거리 (km)</label><input id="pr-dist" type="text" inputmode="decimal" placeholder="선택"></div>
+      <div class="fi"><label>라이딩 중 총 섭취 (kcal)</label><input id="pr-intake" type="text" inputmode="decimal" placeholder="보급식 합계"></div>
+    </div>
+    <button class="btn btn-p" id="btn-postride">결과 분석하기</button>
+  </div>
+  <div id="pr-result"></div>
+</div>
+
+<!-- TIMELINE -->
+<div id="tab-timeline" class="hidden">
+  <div class="card">
+    <div class="ct ct-a">■ 코스 정보</div>
+    <div class="fg">
+      <div class="fi"><label>거리 (km)</label><input id="in-dist" type="text" inputmode="decimal" value="200"></div>
+      <div class="fi"><label>획득 고도 (m)</label><input id="in-elev" type="text" inputmode="decimal" value="1000"></div>
+      <div class="fi"><label>예상 항속 (km/h)</label><input id="in-spd" type="text" inputmode="decimal" value="30"></div>
+      <div class="fi"><label>출발 시간</label><input id="in-st" type="text" value="08:00"></div>
+    </div>
+    <div style="margin-top:14px">
+      <label style="font-size:11px;color:var(--dim);display:block;margin-bottom:6px">라이딩 강도</label>
+      <div class="int-sel">
+        <button class="int-btn" data-int="low">하 (Z2)</button>
+        <button class="int-btn active" data-int="mid">중 (Z2-Z3)</button>
+        <button class="int-btn" data-int="high">상 (Z3-Z4)</button>
+      </div>
+    </div>
+    <button class="btn" id="btn-calc">플랜 생성</button>
+  </div>
+  <div id="tl-content"></div>
+</div>
+
+<!-- HISTORY -->
+<div id="tab-history" class="hidden"><div id="hist-content"></div></div>
+
+<!-- ZONES -->
+<div id="tab-zones" class="hidden"></div>
+
+<div class="footer">CYCLING COACH v5</div>
+</div>
+
+<script>
+// ═══ FOOD DB ═══
+const FOODS=[
+  {id:'gel1',name:'에너지 젤',kcal:100,carb:25,prot:0,fat:0},
+  {id:'gel2',name:'카페인 젤',kcal:100,carb:25,prot:0,fat:0},
+  {id:'bar1',name:'에너지 바',kcal:200,carb:35,prot:8,fat:5},
+  {id:'bar2',name:'프로틴 바',kcal:220,carb:25,prot:20,fat:7},
+  {id:'banana',name:'바나나',kcal:105,carb:27,prot:1,fat:0},
+  {id:'rice',name:'주먹밥',kcal:180,carb:38,prot:4,fat:1},
+  {id:'drink1',name:'스포츠 음료 500ml',kcal:130,carb:32,prot:0,fat:0},
+  {id:'drink2',name:'전해질 음료 500ml',kcal:40,carb:10,prot:0,fat:0},
+  {id:'bcaa',name:'BCAA',kcal:15,carb:0,prot:3,fat:0},
+  {id:'sandwich',name:'샌드위치',kcal:280,carb:35,prot:12,fat:10},
+  {id:'yokan',name:'양갱',kcal:110,carb:26,prot:1,fat:0},
+  {id:'oatmeal',name:'오트밀',kcal:300,carb:50,prot:10,fat:5},
+  {id:'toast',name:'잼 토스트 2장',kcal:320,carb:55,prot:8,fat:6},
+  {id:'custom',name:'직접 입력',kcal:0,carb:0,prot:0,fat:0},
+];
+const INT={
+  low:{label:'하 (Z2)',fp:.62,fl:.60,cl:.72,ds:.35,sp:.90,ch:50},
+  mid:{label:'중 (Z2-Z3)',fp:.70,fl:.72,cl:.85,ds:.40,sp:1.10,ch:70},
+  high:{label:'상 (Z3-Z4)',fp:.80,fl:.82,cl:.95,ds:.45,sp:1.20,ch:90},
+};
+
+// ═══ CALC ═══
+const nn=v=>parseFloat(v)||0;
+const cCal=(w,s)=>Math.round((w*s)/1000);
+const cIF=(np,f)=>f>0?np/f:0;
+const cTSS=(s,np,f)=>{if(f<=0)return 0;const i=cIF(np,f);return Math.round(((s*np*i)/(f*3600))*100);};
+const eNP=(a)=>Math.round(a*1.05);
+const rH=(d,e,s)=>s>0?d/s+(e/1000)*.6:0;
+function cZones(f,m){const p=c=>Math.round(f*c),h=c=>Math.round(m*c);
+return{pw:[{z:'Z1 Recovery',mn:0,mx:p(.55),pc:'< 55%',c:'#3b82f6'},{z:'Z2 Endurance',mn:p(.56),mx:p(.75),pc:'56-75%',c:'#22c55e'},{z:'Z3 Tempo',mn:p(.76),mx:p(.90),pc:'76-90%',c:'#eab308'},{z:'Z4 Threshold',mn:p(.91),mx:p(1.05),pc:'91-105%',c:'#f97316'},{z:'Z5 VO2max',mn:p(1.06),mx:p(1.20),pc:'106-120%',c:'#ef4444'}],
+hr:[{z:'Z1',mn:h(.50),mx:h(.60),c:'#3b82f6'},{z:'Z2',mn:h(.60),mx:h(.70),c:'#22c55e'},{z:'Z3',mn:h(.70),mx:h(.80),c:'#eab308'},{z:'Z4',mn:h(.80),mx:h(.90),c:'#f97316'},{z:'Z5',mn:h(.90),mx:m,c:'#ef4444'}]};}
+
+// ═══ COACHING ENGINE ═══
+function getZoneName(ifv){
+  if(ifv<0.55)return'Z1 (Recovery)';if(ifv<0.75)return'Z2 (Endurance)';
+  if(ifv<0.90)return'Z3 (Tempo)';if(ifv<1.05)return'Z4 (Threshold)';return'Z5 (VO2max)';
+}
+function getHRZone(hr,mhr){
+  if(mhr<=0)return'-';const pct=hr/mhr;
+  if(pct<0.6)return'Z1';if(pct<0.7)return'Z2';if(pct<0.8)return'Z3';if(pct<0.9)return'Z4';return'Z5';
+}
+function analyzeRide(durSec,np,avgP,avgHR,intake,ftp,mhr,weight,targetWeight){
+  const ifv=cIF(np,ftp);
+  const tss=cTSS(durSec,np,ftp);
+  const burned=cCal(avgP>0?avgP:Math.round(np/1.05),durSec);
+  const zone=getZoneName(ifv);
+  const hrZone=avgHR>0?getHRZone(avgHR,mhr):null;
+
+  // 성과 분석
+  let perfReview='';
+  if(ifv>=1.05)perfReview='VO2max 이상의 강도로 운동. 최대 산소 섭취량 및 무산소 역치 자극에 유효한 세션.';
+  else if(ifv>=0.91)perfReview='젖산 역치(FTP) 수준의 부하. 역치 파워 향상에 직접적으로 기여하는 강도.';
+  else if(ifv>=0.76)perfReview='템포 존 강도. 지구력 기반 확대와 지방 산화 효율 개선에 기여.';
+  else if(ifv>=0.56)perfReview='Z2 엔듀런스 강도. 미토콘드리아 밀도 증가, 모세혈관 확장, 유산소 베이스 구축에 최적.';
+  else perfReview='리커버리 수준의 낮은 강도. 능동적 회복 또는 워밍업/쿨다운 세션에 해당.';
+
+  // 심박-파워 커플링 분석
+  let hrAnalysis='';
+  if(avgHR>0&&mhr>0){
+    const hrPct=avgHR/mhr;
+    if(ifv>=0.76&&hrPct<0.7)hrAnalysis='파워 대비 심박수가 낮음. 심폐 효율이 높거나 측정 오류 가능성.';
+    else if(ifv<0.75&&hrPct>0.85)hrAnalysis='파워 대비 심박수가 높음. 탈수, 열 스트레스, 또는 누적 피로 가능성.';
+    else hrAnalysis='파워-심박 커플링 정상 범위.';
+  }
+
+  // 피로도 기반 코칭
+  let fatigue,fatigueClass,coaching,nextPlan;
+  const zn=cZones(ftp,mhr);
+  if(tss>=200){
+    fatigue='EXTREME';fatigueClass='b-r';
+    coaching='근신경계 피로도 극심. 완전한 생리적 회복까지 최소 48-72시간 소요.';
+    nextPlan={
+      title:'완전 휴식 또는 극저강도 리커버리',
+      day1:'완전 휴식 (스트레칭, 폼롤러만 권장)',
+      day2:'리커버리 라이딩: IF 0.50 이하, '+zn.pw[0].mx+'W 이하, 45분 이내',
+      day3:'Z2 엔듀런스: '+zn.pw[1].mn+'-'+zn.pw[1].mx+'W, 60-90분',
+      warning:'근육 글리코겐 고갈 상태. 라이딩 후 2시간 내 체중 1kg당 탄수화물 1.2g 섭취 필수.'
+    };
+  }else if(tss>=150){
+    fatigue='HIGH';fatigueClass='b-r';
+    coaching='젖산 역치 이상의 부하 누적. 내일 고강도 훈련 시 과훈련 위험.';
+    nextPlan={
+      title:'완전 휴식 또는 리커버리 라이딩',
+      day1:'리커버리: IF 0.50 이하, '+zn.pw[0].mx+'W 이하, 1시간 이내',
+      day2:'Z2 엔듀런스: '+zn.pw[1].mn+'-'+zn.pw[1].mx+'W, 90-120분',
+      day3:'스윗스팟 또는 템포: '+zn.pw[2].mn+'-'+Math.round(ftp*0.93)+'W, 20분 × 2세트',
+      warning:null
+    };
+  }else if(tss>=100){
+    fatigue='MODERATE';fatigueClass='b-y';
+    coaching='적정 부하 누적. 유산소 베이스 확장에 유효한 훈련량.';
+    nextPlan={
+      title:'Z2 엔듀런스 볼륨 라이딩',
+      day1:'Z2 엔듀런스: IF 0.65-0.75, '+zn.pw[1].mn+'-'+zn.pw[1].mx+'W, 2시간',
+      day2:'스윗스팟: '+Math.round(ftp*0.88)+'-'+Math.round(ftp*0.93)+'W, 20분 × 2세트',
+      day3:'Z2 또는 휴식',
+      warning:null
+    };
+  }else{
+    fatigue='LOW';fatigueClass='b-g';
+    coaching='초과 회복 가능 상태. 부하가 충분하지 않았거나 짧은 세션.';
+    nextPlan={
+      title:'고강도 인터벌 가능',
+      day1:'스윗스팟: IF 0.85-0.93, '+Math.round(ftp*0.88)+'-'+Math.round(ftp*0.93)+'W, 20분 × 2-3세트',
+      day2:'VO2max 인터벌: '+zn.pw[4].mn+'-'+zn.pw[4].mx+'W, 3-5분 × 4-6세트',
+      day3:'Z2 엔듀런스: 90-120분 볼륨',
+      warning:null
+    };
+  }
+
+  // 다이어트 트래킹
+  const base=Math.round(weight*30);
+  const deficit=weight>targetWeight?400:0;
+  const totalBudget=base+burned-deficit;
+  const netDeficit=burned-intake+deficit;
+  const prot=Math.round(weight*1.8);
+  const fat_=Math.round(weight*0.8);
+  const carbCal=Math.max(totalBudget-prot*4-fat_*9,400);
+  const carb=Math.round(carbCal/4);
+  const remaining=Math.max(totalBudget-intake,0);
+
+  return{ifv,tss,burned,zone,hrZone,hrAnalysis,perfReview,fatigue,fatigueClass,coaching,nextPlan,
+    diet:{base,deficit,totalBudget,intake,burned,netDeficit,remaining,prot,fat_,carb}};
+}
+
+// ═══ STATE ═══
+const SK='cycling_coach_v5';
+function loadS(){try{const d=JSON.parse(localStorage.getItem(SK));if(d)return d;}catch(e){}return{w:73,tw:68,ftp:225,mhr:185,hist:[]};}
+function saveS(){localStorage.setItem(SK,JSON.stringify({w:S.w,tw:S.tw,ftp:S.ftp,mhr:S.mhr,hist:S.hist}));}
+let S=loadS();S.int=S.int||'mid';S.tl=null;
+const $=id=>document.getElementById(id),$$=s=>document.querySelectorAll(s);
+
+function initUI(){$('in-w').value=S.w;$('in-tw').value=S.tw;$('in-ftp').value=S.ftp;$('in-hr').value=S.mhr;updTop();}
+function updTop(){
+  $('ds-w').innerHTML=S.w+'<span class="u">kg</span>';$('ds-f').innerHTML=S.ftp+'<span class="u">W</span>';
+  const wk=S.w>0?(S.ftp/S.w).toFixed(2):'0.00';$('ds-wk').textContent=wk;
+  $('ds-wk').style.color=parseFloat(wk)>=3.5?'var(--green)':parseFloat(wk)>=3?'var(--amber)':'var(--red)';
+  $('ds-t').innerHTML=S.tw+'<span class="u">kg</span>';
+}
+
+// Tabs
+$$('.tab').forEach(b=>b.addEventListener('click',()=>{
+  $$('.tab').forEach(t=>t.classList.remove('active'));b.classList.add('active');
+  const t=b.dataset.tab;['setup','postride','timeline','history','zones'].forEach(id=>$('tab-'+id).classList.toggle('hidden',id!==t));
+  if(t==='zones')renderZ();if(t==='history')renderHist();
+}));
+['in-w','in-tw','in-ftp','in-hr'].forEach(id=>$(id).addEventListener('input',()=>{
+  S.w=nn($('in-w').value);S.tw=nn($('in-tw').value);S.ftp=nn($('in-ftp').value);S.mhr=nn($('in-hr').value);updTop();
+}));
+$('btn-save-profile').addEventListener('click',()=>{saveS();$('btn-save-profile').textContent='저장 완료 ✓';setTimeout(()=>{$('btn-save-profile').textContent='프로필 저장';},1500);});
+$$('.int-btn').forEach(b=>b.addEventListener('click',()=>{$$('.int-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');S.int=b.dataset.int;}));
+
+// ═══ POST-RIDE ANALYSIS ═══
+$('btn-postride').addEventListener('click',()=>{
+  const dh=nn($('pr-dh').value),dm=nn($('pr-dm').value),durM=dh*60+dm;
+  const npIn=nn($('pr-np').value),apIn=nn($('pr-ap').value);
+  const avgHR=nn($('pr-hr').value),dist=nn($('pr-dist').value),intake=nn($('pr-intake').value);
+  if(durM<=0){alert('주행 시간을 입력하세요.');return;}
+  if(npIn<=0&&apIn<=0){alert('NP 또는 평균 파워 중 하나를 입력하세요.');return;}
+  const np=npIn>0?npIn:eNP(apIn);
+  const avgP=apIn>0?apIn:Math.round(np/1.05);
+  const ds=durM*60;
+  const r=analyzeRide(ds,np,avgP,avgHR,intake,S.ftp,S.mhr,S.w,S.tw);
+  const durStr=Math.floor(durM/60)+'시간 '+(durM%60)+'분';
+  const zn=cZones(S.ftp,S.mhr);
+
+  // 저장
+  S.hist.push({id:Date.now(),date:new Date().toLocaleDateString('ko-KR'),dist,dur:durM,avgP,np,tss:r.tss,ifv:r.ifv.toFixed(2),cal:r.burned,intake,type:'post-ride'});
+  saveS();
+
+  let h='';
+  // 1. 데이터 산출
+  h+='<div class="card"><div class="ct ct-p">■ 실제 데이터 산출</div>';
+  h+='<div class="sr sr4"><div class="st"><div class="lb">NP</div><div class="vl" style="color:var(--amber)">'+np+'<span class="u">W</span></div></div>';
+  h+='<div class="st"><div class="lb">IF</div><div class="vl" style="color:var(--blue)">'+r.ifv.toFixed(2)+'</div></div>';
+  h+='<div class="st"><div class="lb">TSS</div><div class="vl" style="color:'+(r.tss<100?'var(--green)':r.tss<200?'var(--amber)':'var(--red)')+'">'+r.tss+'</div></div>';
+  h+='<div class="st"><div class="lb">소모</div><div class="vl">'+r.burned+'<span class="u">kcal</span></div></div></div>';
+  h+='<div class="note">주행 '+durStr+(dist>0?' / '+dist+'km':'')+'<br>';
+  h+='IF '+r.ifv.toFixed(2)+' → 운동 강도 존: <strong style="color:var(--amber)">'+r.zone+'</strong>';
+  if(r.hrZone)h+='<br>평균 심박 '+avgHR+'bpm → 심박 존: <strong style="color:var(--blue)">'+r.hrZone+'</strong>';
+  h+='<br>TSS = ('+ds+'s × '+np+' × '+r.ifv.toFixed(2)+') / ('+S.ftp+' × 3600) × 100 = '+r.tss;
+  h+='<br>소모 = '+avgP+'W × '+ds+'s / 1000 = '+r.burned+'kJ ≈ '+r.burned+'kcal</div></div>';
+
+  // 2. 성과 분석
+  h+='<div class="card"><div class="ct ct-b">■ 성과 분석 리뷰</div>';
+  h+='<div class="brief">산출된 실제 TSS는 <strong>'+r.tss+'</strong>, IF는 <strong>'+r.ifv.toFixed(2)+'</strong>로 <strong>'+r.zone+'</strong> 영역의 부하가 누적됨.</div>';
+  h+='<div class="brief blue">'+r.perfReview+'</div>';
+  if(r.hrAnalysis)h+='<div class="brief'+(r.hrAnalysis.includes('높음')?' red':'')+'">심박-파워 분석: '+r.hrAnalysis+'</div>';
+
+  // 이번 운동으로 얻은 것
+  h+='<div style="margin-top:14px"><div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:8px">▶ 이번 운동으로 얻은 것</div>';
+  h+='<div class="brief green">';
+  if(r.ifv>=0.91)h+='• 젖산 역치(LT2) 자극으로 FTP 향상에 직접 기여<br>• 고강도 지속 능력 및 고통 내성 향상<br>• TSS '+r.tss+' 누적으로 피트니스(CTL) 상승 기여';
+  else if(r.ifv>=0.76)h+='• 유산소-무산소 경계 영역 자극<br>• 지구력 및 템포 유지 능력 향상<br>• 지방 산화율과 글리코겐 절약 효율 개선';
+  else if(r.ifv>=0.56)h+='• 미토콘드리아 밀도 증가 자극<br>• 모세혈관 신생 및 산소 운반 능력 향상<br>• 유산소 베이스(에어로빅 엔진) 확장';
+  else h+='• 능동적 회복: 혈류 촉진으로 노폐물 제거 가속<br>• 관절 가동 범위 유지';
+  h+='</div></div></div>';
+
+  // 3. 피로도 & 코칭
+  h+='<div class="card"><div class="ct ct-r">■ 피로도 분석 & 다음 훈련 코칭</div>';
+  h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><span class="badge '+r.fatigueClass+'">'+r.fatigue+'</span><span style="font-size:12px;color:var(--muted)">TSS '+r.tss+' 기준</span></div>';
+  h+='<div class="brief">'+r.coaching+'</div>';
+
+  h+='<div style="margin-top:14px"><div style="font-size:12px;font-weight:700;color:var(--amber);margin-bottom:10px">▶ 향후 3일 훈련 방향: '+r.nextPlan.title+'</div>';
+  h+='<table><tr><th>일차</th><th>훈련 내용</th></tr>';
+  h+='<tr><td style="color:var(--green)">내일 (D+1)</td><td>'+r.nextPlan.day1+'</td></tr>';
+  h+='<tr><td style="color:var(--blue)">모레 (D+2)</td><td>'+r.nextPlan.day2+'</td></tr>';
+  h+='<tr><td style="color:var(--amber)">D+3</td><td>'+r.nextPlan.day3+'</td></tr></table>';
+  if(r.nextPlan.warning)h+='<div class="brief red" style="margin-top:10px">⚠ '+r.nextPlan.warning+'</div>';
+  h+='</div></div>';
+
+  // 4. 다이어트 트래킹
+  const d=r.diet;
+  h+='<div class="card"><div class="ct ct-g">■ 오늘의 칼로리 & 영양소</div>';
+  h+='<div class="cal-box" style="background:var(--ibg)">';
+  h+='<div style="font-size:12px;font-weight:700;color:var(--amber);margin-bottom:10px">▶ 오늘의 칼로리 계산</div>';
+  h+='<div class="cal-row"><span style="color:var(--muted)">기초 대사량</span><span style="font-weight:700">'+d.base+' kcal</span></div>';
+  h+='<div class="cal-row"><span style="color:var(--green)">+ 운동 소모</span><span style="font-weight:700;color:var(--green)">+'+d.burned+' kcal</span></div>';
+  if(d.deficit>0)h+='<div class="cal-row"><span style="color:var(--red)">- 감량 적자</span><span style="font-weight:700;color:var(--red)">-'+d.deficit+' kcal</span></div>';
+  h+='<div class="cal-row total"><span>= 오늘 먹을 수 있는 총량</span><span style="color:var(--amber)">'+d.totalBudget+' kcal</span></div>';
+  if(d.intake>0){
+    h+='<div class="cal-row"><span style="color:var(--green)">라이딩 중 섭취</span><span style="font-weight:700;color:var(--green)">-'+d.intake+' kcal</span></div>';
+    h+='<div class="cal-row" style="border-top:1px solid var(--border);padding-top:8px"><span style="font-weight:700">남은 섭취 가능</span><span style="color:var(--amber);font-size:16px;font-weight:700">'+d.remaining+' kcal</span></div>';
+  }
+  h+='</div>';
+
+  // 에너지 결손 명시
+  h+='<div class="brief purple" style="margin-top:12px">목표 체중 '+S.tw+'kg 달성을 위해 오늘 <strong>'+d.netDeficit+' kcal</strong>의 에너지 적자를 기록함.'+(d.netDeficit>=500?' 적정 범위(400-600kcal). 근손실 없이 체지방 감량 진행 중.':d.netDeficit>=300?' 양호한 적자 수준.':d.netDeficit<0?' ⚠ 적자 미달. 섭취량이 소모량을 초과함.':' 적자가 다소 낮음. 식단 조절 확인 필요.')+'</div>';
+
+  h+='<div style="font-size:12px;font-weight:700;color:var(--amber);margin:14px 0 8px">▶ 하루 총 영양소 목표</div>';
+  h+='<div class="nut-box"><div class="nut-item"><div class="nt">탄수화물</div><div class="nv" style="color:var(--amber)">'+d.carb+'</div><div class="nu">g</div></div>';
+  h+='<div class="nut-item"><div class="nt">단백질</div><div class="nv" style="color:var(--red)">'+d.prot+'</div><div class="nu">g</div></div>';
+  h+='<div class="nut-item"><div class="nt">지방</div><div class="nv" style="color:var(--blue)">'+d.fat_+'</div><div class="nu">g</div></div></div>';
+  h+='<div class="note" style="margin-top:12px">※ 라이딩 후 30분 내 단백질 30g + 탄수화물 50g 섭취 권장<br>※ 💾 운동 기록 자동 저장됨</div>';
+  h+='</div>';
+
+  $('pr-result').innerHTML=h;
+});
+
+// ═══ HISTORY ═══
+function renderHist(){
+  if(S.hist.length===0){$('hist-content').innerHTML='<div class="card"><div style="text-align:center;color:var(--muted);padding:24px">저장된 운동 기록이 없습니다.</div></div>';return;}
+  let h='<div class="card"><div class="ct ct-a">■ 운동 기록 ('+S.hist.length+'건)</div><div style="overflow-x:auto"><table><tr><th>날짜</th><th>거리</th><th>시간</th><th>NP</th><th>TSS</th><th>IF</th><th>소모</th><th></th></tr>';
+  S.hist.slice().reverse().forEach(r=>{
+    const ds=Math.floor(r.dur/60)+'h'+(r.dur%60)+'m';
+    h+='<tr><td>'+r.date+'</td><td>'+(r.dist||'-')+'km</td><td>'+ds+'</td><td>'+r.np+'W</td><td>'+r.tss+'</td><td>'+(r.ifv||'-')+'</td><td>'+r.cal+'kcal</td><td><button class="del-btn" data-id="'+r.id+'">삭제</button></td></tr>';
+  });
+  h+='</table></div></div>';
+  const t=S.hist.reduce((a,r)=>({cal:a.cal+r.cal,dist:a.dist+(r.dist||0),dur:a.dur+r.dur,tss:a.tss+r.tss}),{cal:0,dist:0,dur:0,tss:0});
+  h+='<div class="card"><div class="ct ct-g">■ 누적</div><div class="sr sr4"><div class="st"><div class="lb">총 거리</div><div class="vl" style="font-size:16px">'+Math.round(t.dist)+'<span class="u">km</span></div></div><div class="st"><div class="lb">총 시간</div><div class="vl" style="font-size:16px">'+Math.round(t.dur/60)+'<span class="u">h</span></div></div><div class="st"><div class="lb">총 소모</div><div class="vl" style="font-size:16px;color:var(--red)">'+t.cal.toLocaleString()+'<span class="u">kcal</span></div></div><div class="st"><div class="lb">총 TSS</div><div class="vl" style="font-size:16px">'+t.tss+'</div></div></div>';
+  h+='<button class="btn btn-r" id="btn-clear" style="font-size:12px;padding:8px">전체 기록 삭제</button></div>';
+  $('hist-content').innerHTML=h;
+  $$('.del-btn').forEach(b=>b.addEventListener('click',function(){if(!confirm('삭제?'))return;S.hist=S.hist.filter(r=>r.id!==parseInt(this.dataset.id));saveS();renderHist();}));
+  const c=$('btn-clear');if(c)c.addEventListener('click',()=>{if(!confirm('전체 삭제?'))return;S.hist=[];saveS();renderHist();});
+}
+
+// ═══ TIMELINE ═══
+function genTL(th,st,intensity){
+  const[sh,sm]=st.split(':').map(Number);const pr=INT[intensity];const rows=[];const hrs=Math.ceil(th);
+  for(let h=0;h<hrs;h++){
+    const hr=(sh+h)%24;const ts=String(hr).padStart(2,'0')+':'+String(sm).padStart(2,'0');
+    let foods=[],water=600,note='';
+    if(h===0){foods=[{...FOODS[11]},{...FOODS[4]}];water=500;note='출발 2시간 전';}
+    else if(h<2){foods=[{...FOODS[2]},{...FOODS[6]}];note='고체 음식 소화 가능';}
+    else if(h<hrs-1){
+      if(h>4){foods=[{...FOODS[1]},{...FOODS[1]},{...FOODS[7]}];note='카페인 젤 전환';}
+      else{foods=h%2===0?[{...FOODS[0]},{...FOODS[0]},{...FOODS[7]}]:[{...FOODS[0]},{...FOODS[4]},{...FOODS[7]}];note='시간당 '+pr.ch+'g 탄수화물';}
+      water=h>3?700:600;
+    }else{foods=[{...FOODS[1]},{...FOODS[8]},{...FOODS[7]}];water=700;note='마지막 구간';}
+    rows.push({hour:h,time:ts,foods,water,note});
+  }return rows;
+}
+$('btn-calc').addEventListener('click',()=>{
+  const dist=nn($('in-dist').value),elev=nn($('in-elev').value),spd=nn($('in-spd').value),st=$('in-st').value||'08:00';
+  if(dist<=0||spd<=0){alert('거리와 항속을 확인하세요.');return;}
+  const pr=INT[S.int],rh_=rH(dist,elev,spd),rs=Math.floor(rh_/2),rth=rs*.25,th=rh_+rth;
+  const[sh,sm]=st.split(':').map(Number),em=sh*60+sm+th*60;
+  const arr=String(Math.floor(em/60)%24).padStart(2,'0')+':'+String(Math.round(em%60)).padStart(2,'0');
+  const avgP=Math.round(S.ftp*pr.fp),burned=cCal(avgP,th*3600);
+  const tl=genTL(th,st,S.int);
+  const pac=[{s:'평지',p:Math.round(pr.fl*100),w:Math.round(S.ftp*pr.fl),g:'드래프팅 활용'},{s:'업힐',p:Math.round(pr.cl*100),w:Math.round(S.ftp*pr.cl),g:'케이던스 80-90rpm'},{s:'다운힐',p:Math.round(pr.ds*100),w:Math.round(S.ftp*pr.ds),g:'회복, 보급'},{s:'스프린트',p:Math.round(pr.sp*100),w:Math.round(S.ftp*pr.sp),g:'마지막 5km'}];
+  S.tl={rh:rh_,rs,rth,th,arr,avgP,burned,rows:tl,pac,int:S.int,dist,elev,st};renderTLUI();
+});
+function renderTLUI(){
+  const d=S.tl;if(!d)return;const cp=Math.round((d.elev/1000)*.6*60),pr=INT[d.int];
+  const fo=FOODS.map(f=>'<option value="'+f.id+'">'+f.name+'</option>').join('');
+  let h='<div class="card"><div class="ct ct-b">■ 예상 시간</div><div class="sr sr2"><div class="st"><div class="lb">순수 주행</div><div class="vl" style="color:var(--amber)">'+Math.floor(d.rh)+'h '+Math.round((d.rh%1)*60)+'m</div></div><div class="st"><div class="lb">총 소요</div><div class="vl" style="color:var(--blue)">'+Math.floor(d.th)+'h '+Math.round((d.th%1)*60)+'m</div></div></div><div class="sr sr2"><div class="st"><div class="lb">출발</div><div class="vl">'+d.st+'</div></div><div class="st"><div class="lb">도착</div><div class="vl" style="color:var(--green)">'+d.arr+'</div></div></div><div class="note">강도: '+pr.label+' / 평균 '+d.avgP+'W / 휴식 '+d.rs+'회 / 등반 +'+cp+'분<br>총 소모: <strong style="color:var(--red)">'+d.burned+'kcal</strong></div></div>';
+  h+='<div class="card"><div class="ct ct-a">■ 페이싱</div><table><tr><th>구간</th><th>FTP%</th><th>파워</th><th>가이드</th></tr>'+d.pac.map(p=>'<tr><td>'+p.s+'</td><td>'+p.p+'%</td><td>'+p.w+'W</td><td style="color:var(--muted)">'+p.g+'</td></tr>').join('')+'</table></div>';
+  h+='<div class="card"><div class="ct ct-g">■ 보급 타임라인</div><div style="overflow-x:auto"><table><tr><th>시간</th><th>보급품</th><th>kcal</th><th>탄</th><th>단</th><th>지</th><th>수분</th></tr>';
+  d.rows.forEach((row,ri)=>{row.foods.forEach((food,fi)=>{const isF=fi===0;h+='<tr>';if(isF)h+='<td rowspan="'+row.foods.length+'" style="vertical-align:top">'+row.time+'<br><span style="font-size:10px;color:var(--dim)">+'+row.hour+'h</span></td>';h+='<td><select class="tl-fd">'+fo.replace('value="'+food.id+'"','value="'+food.id+'" selected')+'</select></td><td><input class="tl-kc" value="'+food.kcal+'"></td><td><input class="tl-cb" value="'+food.carb+'"></td><td><input class="tl-pt" value="'+food.prot+'"></td><td><input class="tl-ft" value="'+food.fat+'"></td>';if(isF)h+='<td rowspan="'+row.foods.length+'" style="vertical-align:top"><input class="tl-wt" value="'+row.water+'" style="width:45px">ml</td>';h+='</tr>';});});
+  h+='</table></div><div id="tl-sum"></div></div><div class="card"><div class="ct ct-r">■ 오늘의 식단 가이드</div><div id="tl-diet"></div></div>';
+  $('tl-content').innerHTML=h;
+  $$('.tl-fd').forEach(sel=>sel.addEventListener('change',function(){const f=FOODS.find(x=>x.id===this.value),row=this.closest('tr');if(f){row.querySelector('.tl-kc').value=f.kcal;row.querySelector('.tl-cb').value=f.carb;row.querySelector('.tl-pt').value=f.prot;row.querySelector('.tl-ft').value=f.fat;}recalcTL();}));
+  $$('.tl-kc,.tl-cb,.tl-pt,.tl-ft,.tl-wt').forEach(i=>i.addEventListener('input',recalcTL));recalcTL();
+}
+function recalcTL(){
+  const d=S.tl;if(!d)return;let tk=0,tc=0,tp=0,tf=0,tw=0;
+  $$('.tl-kc').forEach(i=>tk+=nn(i.value));$$('.tl-cb').forEach(i=>tc+=nn(i.value));$$('.tl-pt').forEach(i=>tp+=nn(i.value));$$('.tl-ft').forEach(i=>tf+=nn(i.value));$$('.tl-wt').forEach(i=>tw+=nn(i.value));
+  $('tl-sum').innerHTML='<div class="note" style="background:var(--card);border:1px solid var(--border)"><strong style="color:var(--green)">라이딩 중 섭취:</strong> '+tk+'kcal (탄 '+tc+'g / 단 '+tp+'g / 지 '+tf+'g) / 수분 '+(tw/1000).toFixed(1)+'L<br><strong style="color:var(--red)">운동 소모:</strong> '+d.burned+'kcal<br><strong style="color:var(--amber)">에너지 결손:</strong> '+(d.burned-tk)+'kcal</div>';
+  const base=Math.round(S.w*30),def=S.w>S.tw?400:0,tb=base+d.burned-def,rem=Math.max(tb-tk,0);
+  const prot=Math.round(S.w*1.8),fat_=Math.round(S.w*.8),carbCal=Math.max(tb-prot*4-fat_*9,400),carb=Math.round(carbCal/4);
+  const rC=Math.max(carb-tc,0),rP=Math.max(prot-tp,0),rF=Math.max(fat_-tf,0);
+  $('tl-diet').innerHTML='<div class="cal-box" style="background:var(--ibg)"><div style="font-size:12px;font-weight:700;color:var(--amber);margin-bottom:10px">▶ 칼로리 계산</div><div class="cal-row"><span style="color:var(--muted)">기초 대사량</span><span style="font-weight:700">'+base+'</span></div><div class="cal-row"><span style="color:var(--green)">+ 운동 소모</span><span style="font-weight:700;color:var(--green)">+'+d.burned+'</span></div>'+(def>0?'<div class="cal-row"><span style="color:var(--red)">- 감량 적자</span><span style="font-weight:700;color:var(--red)">-'+def+'</span></div>':'')+'<div class="cal-row total"><span>= 총 섭취 가능</span><span style="color:var(--amber)">'+tb+' kcal</span></div><div class="cal-row"><span style="color:var(--green)">라이딩 중 섭취</span><span style="color:var(--green)">-'+tk+'</span></div><div class="cal-row" style="border-top:1px solid var(--border);padding-top:8px"><span style="font-weight:700">남은 섭취</span><span style="color:var(--amber);font-size:16px;font-weight:700">'+rem+' kcal</span></div></div><div style="font-size:12px;font-weight:700;color:var(--amber);margin:12px 0 8px">▶ 하루 총 영양소 목표</div><div class="nut-box"><div class="nut-item"><div class="nt">탄수화물</div><div class="nv" style="color:var(--amber)">'+carb+'</div><div class="nu">g</div></div><div class="nut-item"><div class="nt">단백질</div><div class="nv" style="color:var(--red)">'+prot+'</div><div class="nu">g</div></div><div class="nut-item"><div class="nt">지방</div><div class="nv" style="color:var(--blue)">'+fat_+'</div><div class="nu">g</div></div></div><div style="font-size:12px;font-weight:700;color:var(--green);margin:14px 0 8px">▶ 남은 영양소</div><div class="nut-box"><div class="nut-item" style="border:1px solid var(--border)"><div class="nt">탄수화물</div><div class="nv" style="color:var(--amber)">'+rC+'</div><div class="nu">g 남음</div></div><div class="nut-item" style="border:1px solid var(--border)"><div class="nt">단백질</div><div class="nv" style="color:var(--red)">'+rP+'</div><div class="nu">g 남음</div></div><div class="nut-item" style="border:1px solid var(--border)"><div class="nt">지방</div><div class="nv" style="color:var(--blue)">'+rF+'</div><div class="nu">g 남음</div></div></div>';
+}
+
+// ═══ ZONES ═══
+function renderZ(){
+  const f=S.ftp,m=S.mhr,z=cZones(f,m);
+  let h='<div class="card"><div class="ct ct-a">■ 파워 존 (FTP '+f+'W)</div>'+z.pw.map(x=>'<div class="zr"><div class="zd" style="background:'+x.c+'"></div><div class="zn">'+x.z+'</div><div class="zw">'+x.mn+'-'+x.mx+'W</div><div class="zp">'+x.pc+'</div></div>').join('')+'</div>';
+  h+='<div class="card"><div class="ct ct-b">■ 심박 존 ('+m+'bpm)</div>'+z.hr.map(x=>'<div class="zr"><div class="zd" style="background:'+x.c+'"></div><div class="zn">'+x.z+'</div><div class="zw" style="color:var(--blue)">'+x.mn+'-'+x.mx+'bpm</div></div>').join('')+'</div>';
+  h+='<div class="card"><div class="ct ct-a">■ 훈련 가이드</div><div style="font-size:12px;line-height:2"><div><span style="color:var(--amber)">스윗스팟:</span> '+Math.round(f*.88)+'-'+Math.round(f*.93)+'W / 20-30분 × 2-3세트</div><div><span style="color:var(--green)">Z2:</span> '+Math.round(f*.56)+'-'+Math.round(f*.75)+'W / 60-180분</div><div><span style="color:var(--red)">VO2max:</span> '+Math.round(f*1.06)+'-'+Math.round(f*1.2)+'W / 3-5분 × 4-6세트</div><div><span style="color:var(--blue)">리커버리:</span> '+Math.round(f*.4)+'-'+Math.round(f*.55)+'W / 30-45분</div></div></div>';
+  $('tab-zones').innerHTML=h;
+}
+initUI();
+</script>
+</body>
+</html>
