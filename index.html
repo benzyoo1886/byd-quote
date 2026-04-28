@@ -745,9 +745,21 @@ input:-webkit-autofill{ -webkit-box-shadow:0 0 0 1000px var(--s2) inset; -webkit
   </div>
 </div>
 
-<!-- 4. 보조금 -->
+<!-- 4. 할인 -->
 <div class="card">
-  <div class="card-hd"><div class="card-num">4</div><div class="card-title">보조금 및 지역</div></div>
+  <div class="card-hd"><div class="card-num">4</div><div class="card-title">할인 (선택)</div></div>
+  <div class="card-body">
+    <div class="fg">
+      <div class="fl">할인 금액 <span class="tag">차량가격에서 차감 · 취등록세·공채·할부원금 모두 재계산</span></div>
+      <div class="fr"><input class="fi" id="discountCost" type="text" inputmode="numeric" placeholder="0" oninput="moneyInput(this,onDiscountChange)"><span class="funit">원</span></div>
+      <div class="fn" id="discountNote">할인 미적용</div>
+    </div>
+  </div>
+</div>
+
+<!-- 5. 보조금 -->
+<div class="card">
+  <div class="card-hd"><div class="card-num">5</div><div class="card-title">보조금 및 지역</div></div>
   <div class="card-body">
     <div class="grid2" style="margin-bottom:14px;">
       <div class="fg full">
@@ -832,9 +844,9 @@ input:-webkit-autofill{ -webkit-box-shadow:0 0 0 1000px var(--s2) inset; -webkit
   </div>
 </div>
 
-<!-- 5. 등록/부대비용 -->
+<!-- 6. 등록/부대비용 -->
 <div class="card">
-  <div class="card-hd"><div class="card-num">5</div><div class="card-title">등록비용 / 부대비용</div></div>
+  <div class="card-hd"><div class="card-num">6</div><div class="card-title">등록비용 / 부대비용</div></div>
   <div class="card-body">
     <div class="cost-cols">
       <div>
@@ -909,9 +921,9 @@ input:-webkit-autofill{ -webkit-box-shadow:0 0 0 1000px var(--s2) inset; -webkit
   </div>
 </div>
 
-<!-- 6. 구매방식 -->
+<!-- 7. 구매방식 -->
 <div class="card">
-  <div class="card-hd"><div class="card-num">6</div><div class="card-title">구매 방식</div></div>
+  <div class="card-hd"><div class="card-num">7</div><div class="card-title">구매 방식</div></div>
   <div class="card-body">
     <div class="pay-tabs">
       <button class="pay-tab active" onclick="setPayMode('cash',this)">💵 현금</button>
@@ -1112,6 +1124,8 @@ input:-webkit-autofill{ -webkit-box-shadow:0 0 0 1000px var(--s2) inset; -webkit
 
     <div class="q-sec">차량 가격</div>
     <div class="q-line"><span class="ql">차량가 (VAT포함)</span><span class="qv" id="qCarPrice">–</span></div>
+    <div class="q-line" id="qDiscountRow" style="display:none;"><span class="ql" style="color:var(--g);font-weight:600;">할인</span><span class="qv red" id="qDiscount">–</span></div>
+    <div class="q-line" id="qEffPriceRow" style="display:none;padding-left:8px;"><span class="ql" style="color:var(--dim);font-size:10px;">└ 할인 후 차량가</span><span class="qv" id="qEffPrice" style="font-size:10px;">–</span></div>
 
     <div class="q-sec">보조금 차감</div>
     <!-- 총 보조금 합계 먼저 -->
@@ -1282,9 +1296,12 @@ const CARS = {
   sealion7:{
     name:"BYD SEALION 7", nameKo:"BYD 씨라이언7", type:"중형 SUV EV", emoji:"🦁",
     trims:[
-      {name:"SEALION 7",spec:"82.56kWh | 상온 398km / 저온 385km | RWD 230kW", price:44900000}
+      {name:"SEALION 7",     spec:"82.56kWh | 상온 398km / 저온 385km | RWD 230kW", price:44900000},
+      {name:"SEALION 7 Plus",spec:"82.56kWh | 상온 398km / 저온 385km | RWD 230kW", price:46900000}
     ],
     colorsByTrim:[
+      [{name:"오로라 화이트",hex:"#f2f3f5"},{name:"코스모스 블랙",hex:"#1a1a22"},
+       {name:"샤크 그레이",hex:"#4a5260"},{name:"아틀란티스 그레이",hex:"#6b7e8a"}],
       [{name:"오로라 화이트",hex:"#f2f3f5"},{name:"코스모스 블랙",hex:"#1a1a22"},
        {name:"샤크 그레이",hex:"#4a5260"},{name:"아틀란티스 그레이",hex:"#6b7e8a"}]
     ]
@@ -1302,7 +1319,8 @@ const SUBSIDY_DB = {
     seal_0:     [1690000, 500000, 440000],  // SEAL RWD
     seal_1:     [1690000, 500000, 440000],  // SEAL Plus
     seal_2:     [1510000, 450000, 390000],  // SEAL AWD
-    sealion7_0: [1520000, 450000, 390000]   // SEALION 7
+    sealion7_0: [1520000, 450000, 390000],  // SEALION 7
+    sealion7_1: [1520000, 450000, 390000]   // SEALION 7 Plus
   },
   // ── 인천 ──────────────────────────────────────────────────
   "인천":{
@@ -1312,7 +1330,8 @@ const SUBSIDY_DB = {
     seal_0:     [1690000, 450000, 440000],
     seal_1:     [1690000, 450000, 440000],
     seal_2:     [1510000, 500000, 390000],
-    sealion7_0: [1520000, 450000, 390000]
+    sealion7_0: [1520000, 450000, 390000],
+    sealion7_1: [1520000, 450000, 390000]
   },
   // ── 경기 김포 ─────────────────────────────────────────────
   "김포":{
@@ -1322,7 +1341,8 @@ const SUBSIDY_DB = {
     seal_0:     [1690000, 670000, 440000],
     seal_1:     [1690000, 670000, 440000],
     seal_2:     [1510000, 600000, 390000],
-    sealion7_0: [1520000, 600000, 390000]
+    sealion7_0: [1520000, 600000, 390000],
+    sealion7_1: [1520000, 600000, 390000]
   }
 };
 
@@ -1354,7 +1374,8 @@ const NAT_SUBSIDY = {
   seal_0:     1690000,  // SEAL RWD
   seal_1:     1690000,  // SEAL Plus
   seal_2:     1510000,  // SEAL AWD
-  sealion7_0: 1520000   // SEALION 7
+  sealion7_0: 1520000,  // SEALION 7
+  sealion7_1: 1520000   // SEALION 7 Plus
 };
 
 // ── 공채 지역별/차종별 매입 요율 (%) ──
@@ -1396,7 +1417,8 @@ function calcBondAuto(){
   const region = $('regionSel').value;
   const rates  = BOND_RATE_TABLE[region];
   if(!rates) return 0;
-  const carPrice = CARS[S.carKey].trims[S.trimIdx].price;
+  const discount = pF('discountCost');
+  const carPrice = Math.max(0, CARS[S.carKey].trims[S.trimIdx].price - discount);
   const supplyPrice = Math.round(carPrice / 1.1); // VAT 제외 공급가액
   const rate = isCarSUV(S.carKey) ? rates.suv : rates.sedan;
   if(rate === 0) return 0;
@@ -1468,7 +1490,7 @@ function moneyInput(el, callback){
 
 // 초기값 콤마 포맷 적용 (페이지 로드 시)
 function initMoneyInputs(){
-  const ids=['acqTaxInput','bondCost','plateCost','deliveryCost','etcCost',
+  const ids=['acqTaxInput','bondCost','plateCost','deliveryCost','etcCost','discountCost',
              'cashDeposit','instDeposit','instDown','instPrincipalDirect',
              'leaseDeposit','rentalDeposit','rentalMonthly'];
   ids.forEach(id=>{
@@ -1669,9 +1691,11 @@ function onSubChange(){
   const convValEl=$('chk-conv')?.querySelector('.sub-val');
   if(convValEl) convValEl.textContent=convAmt>0?`-${won(convAmt)}`:'금액 입력';
   // 보조금 변경 시 할부원금 직접입력 초기화 (자동계산으로 복귀)
-  const pEl=$('instPrincipalDirect'); if(pEl) pEl.value='';
+  const pEl=$('instPrincipalDirect'); if(pEl){ pEl.value=''; pEl._manualMode=false; }
   const pNote=$('instPrincipalNote'); if(pNote) pNote.style.color='';
-  syncSubTotal(); calc();
+  syncSubTotal();
+  // 새 순차량가 기준으로 선수금·할부원금 재계산 + 화면 갱신
+  if($('downPctSel')) onDownPctChange(); else calc();
 }
 function syncSubTotal(){
   const nat=pF('subNat'),loc=pF('subLoc');
@@ -1714,6 +1738,25 @@ function setBond(mode,el){
 
 // ── 취등록세 ──
 function onAcqManual(){acqManual=$('acqTaxInput').value!=='';calc();}
+
+// ── 할인 ──
+function onDiscountChange(){
+  const discount = pF('discountCost');
+  const note = $('discountNote');
+  if(note){
+    if(discount>0){
+      note.textContent = `할인 ${won(discount)} 적용 → 취등록세·공채·할부원금 자동 재계산`;
+      note.style.color = 'var(--g)';
+    } else {
+      note.textContent = '할인 미적용';
+      note.style.color = '';
+    }
+  }
+  // 차량가격 변동 → 할부원금 직접입력 초기화 (자동계산 복귀)
+  const pEl=$('instPrincipalDirect'); if(pEl){ pEl.value=''; pEl._manualMode=false; }
+  // 새 effPrice 기준으로 선수금·할부원금 재계산 + 화면 갱신
+  if($('downPctSel')) onDownPctChange(); else calc();
+}
 
 // ── 구매방식 ──
 function setPayMode(mode,el){
@@ -1832,7 +1875,8 @@ function getInstGrand(){
 function getInstBase(){
   if(!S.carKey) return 0;
   const car=CARS[S.carKey], trim=car.trims[S.trimIdx];
-  const carPrice=trim.price;
+  const discount=pF('discountCost');
+  const carPrice=Math.max(0, trim.price - discount);
   const subTI=(pF('subTotal')||0)*10000;
   if(subTI>0) return Math.max(0, carPrice-subTI);
   const nat=(pF('subNat')||0)*10000;
@@ -1925,6 +1969,9 @@ function onInstDownChange(){
   const dNote   = $('instDownNote');
   const hidIn   = $('instDown');
 
+  // 사용자가 선수금을 직접 편집 → 할부원금 manual 모드 해제 (자동계산 복귀)
+  if(pEl) pEl._manualMode = false;
+
   // 포함 모드: inputAmt = 총초기비용 → 순수선수금 = inputAmt - 등록+부대
   // 별도 모드: inputAmt = 순수선수금 그대로
   const pureDown = _regIncluded ? Math.max(0, inputAmt - regMisc) : inputAmt;
@@ -1936,8 +1983,8 @@ function onInstDownChange(){
     const autoPrincipal = pureDown>0
       ? Math.max(0, base - pureDown)
       : Math.max(0, base - dep);
-    // instPrincipalDirect 필드에 값을 쓰지 않음 - getInstCalcValues()가 자동계산
-    // (사용자가 직접 타이핑한 경우에만 pF('instPrincipalDirect')가 사용됨)
+    // 할부원금 입력 필드 자동 갱신 (좌측 패널 표시용)
+    if(pEl) pEl.value = Math.round(autoPrincipal).toLocaleString('ko-KR');
 
     if(_regIncluded && inputAmt>0){
       if(dNote){ dNote.textContent=`총초기비용 ${won(inputAmt)} − 등록+부대(${won(regMisc)}) = 선수금 ${won(pureDown)} → 할부원금 ${won(Math.round(autoPrincipal))}`; dNote.style.color='var(--yellow)'; }
@@ -2050,8 +2097,10 @@ function calc(){
   const colors=car.colorsByTrim[S.trimIdx]||car.colorsByTrim[0];
   const color=colors[S.colorIdx]||colors[0];
 
-  const carPrice=trim.price;
-  const carExVAT=carPrice/1.1;
+  const carPrice=trim.price;                      // MSRP (출고가) — 표시용
+  const discount=pF('discountCost');               // 영업 할인
+  const effPrice=Math.max(0, carPrice - discount); // 할인 적용 후 차량가격 — 계산용
+  const carExVAT=effPrice/1.1;
 
   const nat=(pF('subNat')||0)*10000;
   const loc=(pF('subLoc')||0)*10000;
@@ -2062,7 +2111,7 @@ function calc(){
   const subTI=(pF('subTotal')||0)*10000;
   const subT=subTI>0?subTI:(nat+loc+conv+c2+c3+fst);
 
-  const netCar=carPrice-subT;
+  const netCar=effPrice-subT;
 
   const acqBefore=Math.round(carExVAT*0.07);
   const EV=CONFIG.EV_ACQ_REDUCE;
@@ -2080,7 +2129,7 @@ function calc(){
   if(bondMode==='auto'){
     const rates = BOND_RATE_TABLE[region];
     if(rates && S.carKey){
-      const supplyPrice = Math.round(carPrice / 1.1);
+      const supplyPrice = Math.round(effPrice / 1.1);
       const rate = isCarSUV(S.carKey) ? rates.suv : rates.sedan;
       const discPct = parseFloat($('bondDiscountInput')?.value)||5;
       if(rate===0){
@@ -2127,6 +2176,11 @@ function calc(){
   setQ('qCarNm',car.name);setQ('qCarTrim',trim.name+' · '+trim.spec);
   setQ('qCarColor','색상: '+color.name);
   setQ('qCarPrice',won(carPrice));
+  // 할인 표시
+  showEl('qDiscountRow', discount>0);
+  showEl('qEffPriceRow', discount>0);
+  setQ('qDiscount', discount>0 ? `-${won(discount)}` : '–');
+  setQ('qEffPrice', won(effPrice));
   setQ('qSubNat',nat>0?`-${won(nat)}`:'–');
   setQ('qSubLoc',loc>0?`-${won(loc)}`:'–');
   // 총 보조금 합계
@@ -2177,8 +2231,8 @@ function calc(){
     const pureDown  = _regIncluded ? Math.max(0, down - regMisc) : down;
     const actualDown = pureDown;
 
-    // 순차량가 (보조금 차감)
-    const netCar2 = Math.max(0, carPrice - subT);
+    // 순차량가 (할인 + 보조금 차감)
+    const netCar2 = Math.max(0, effPrice - subT);
     const ncd=$('instNetCarDisp');
     if(ncd) ncd.textContent = netCar2>0 ? won(Math.round(netCar2)) : '–';
 
@@ -2285,14 +2339,21 @@ function getFileName(){
 function buildQuoteLines(){
   if(!S.carKey)return[];
   const collect=id=>{const e=$(id);return e?e.textContent.trim():'';};
+  const _disc=pF('discountCost');
   const lines=[
     {sec:'차량 가격'},
     {label:'차량가 (VAT포함)',val:collect('qCarPrice')},
+  ];
+  if(_disc>0){
+    lines.push({label:'할인',val:collect('qDiscount'),red:true,bold:true});
+    lines.push({label:'└ 할인 후 차량가',val:collect('qEffPrice'),dim:true});
+  }
+  lines.push(
     {sec:'보조금 차감'},
     {label:'총 보조금',val:collect('qSubTotal')||'–',red:true,bold:true},
     {label:'└ 국고 보조금',val:collect('qSubNat'),red:true,dim:true},
     {label:'└ 지방비',val:collect('qSubLoc'),red:true,dim:true},
-  ];
+  );
   if($('qConvRow').style.display!=='none')lines.push({label:'└ 전환지원금',val:collect('qSubConv'),red:true,dim:true});
   if($('qC2Row').style.display!=='none')lines.push({label:'└ 다자녀 (2명)',val:'-1,000,000원',red:true,dim:true});
   if($('qC3Row').style.display!=='none')lines.push({label:'└ 다자녀 (3명+)',val:'-2,000,000원',red:true,dim:true});
@@ -3076,12 +3137,17 @@ function drawCompareCanvas(ctx,W,pr,car,trim,color,carImg,months,rate,principal,
 
   const LC=pad, RC=pad+cw*0.5;
   const CW1=cw*0.5, CW2=cw*0.5;
-  const netC=Math.max(0,trim.price-subT2);
+  const _disc=pF('discountCost');
+  const _effPrice=Math.max(0, trim.price - _disc);
+  const netC=Math.max(0,_effPrice-subT2);
 
   const leftItems=[
     {label:'기본 차량가', val:won(trim.price), color:INK2},
-    {label:'보조금 합계', val:'-'+won(subT2), color:RED},
   ];
+  if(_disc>0){
+    leftItems.push({label:'할인', val:'-'+won(_disc), color:RED});
+  }
+  leftItems.push({label:'보조금 합계', val:'-'+won(subT2), color:RED});
   const rightItems=[
     {label:'취등록세  (-140만원 감면)', val:won(acqV), color:INK2},
     {label:'등록 부대비용', val:won(plateV), color:INK2},
@@ -3432,7 +3498,7 @@ function resetAll(){
   S={carKey:null,trimIdx:0,colorIdx:0,payMode:'cash'};
   subChecks={child2:false,child3:false,first:false,conv:false};bondMode='exempt';acqManual=false;
   // 텍스트 인풋 초기화 (instMonthDirect는 hidden, 직접 처리)
-  ['acqTaxInput','bondCost','etcCost','instRateDirect','instPrincipalDirect','instDownDirect','leaseDeposit','rentalDeposit','rentalMonthly'].forEach(id=>{const e=$(id);if(e)e.value='';});
+  ['acqTaxInput','bondCost','etcCost','discountCost','instRateDirect','instPrincipalDirect','instDownDirect','leaseDeposit','rentalDeposit','rentalMonthly'].forEach(id=>{const e=$(id);if(e)e.value='';});
   if($('instMonthDirect')) $('instMonthDirect').value='36';
   // 개월수 체크박스 → 36개월 기본 복원
   [12,24,36,48,60].forEach(m=>{ const c=$('cmp'+m); if(c) c.checked=(m===36); });
@@ -3443,6 +3509,7 @@ function resetAll(){
   if($('deliveryCost')) $('deliveryCost').value =fmt(CONFIG.DELIVERY_COST);
   if($('cashDeposit'))  $('cashDeposit').value  =fmt(CONFIG.DEFAULT_DEPOSIT);
   if($('instDeposit'))  $('instDeposit').value  =fmt(CONFIG.DEFAULT_DEPOSIT);
+  if($('discountNote')) { $('discountNote').textContent='할인 미적용'; $('discountNote').style.color=''; }
   // 선수금 셀렉트 리셋
   if($('downPctSel'))  { $('downPctSel').value='0'; onDownPctChange(); }
   if($('instDown'))    $('instDown').value='0';
@@ -3508,10 +3575,11 @@ window.addEventListener('load', init);
     <div class="guide-step"><div class="gsnum">1</div><div class="gstxt"><strong>차종 선택</strong><span>돌핀·아토3·씰·씨라이언7 중 원하는 차종을 탭하세요</span></div></div>
     <div class="guide-step"><div class="gsnum">2</div><div class="gstxt"><strong>트림 선택</strong><span>차종별 트림(등급)과 가격을 확인하고 선택하세요</span></div></div>
     <div class="guide-step"><div class="gsnum">3</div><div class="gstxt"><strong>색상 선택</strong><span>트림별 제공 색상 중 고객이 원하는 색상을 선택하세요 (추가비용 없음)</span></div></div>
-    <div class="guide-step"><div class="gsnum">4</div><div class="gstxt"><strong>보조금 입력</strong><span>지역 선택 시 서울·인천·김포는 국고/지방비/전환지원금 자동 입력됩니다. 다자녀·생애첫차 항목도 체크하세요</span></div></div>
-    <div class="guide-step"><div class="gsnum">5</div><div class="gstxt"><strong>등록·부대비용 확인</strong><span>취등록세는 VAT 제외 차량가 × 7% − 140만원(전기차 감면)으로 자동 계산됩니다</span></div></div>
-    <div class="guide-step"><div class="gsnum">6</div><div class="gstxt"><strong>구매 방식 선택</strong><span>현금·할부·리스·장기렌트 중 선택. 할부는 슬라이더로 금리(0.1% 단위)와 개월 수를 조절하세요</span></div></div>
-    <div class="guide-step"><div class="gsnum">7</div><div class="gstxt"><strong>견적서 출력·저장</strong><span>우측 패널 하단 버튼 또는 모바일 하단 바에서 출력/저장</span></div></div>
+    <div class="guide-step"><div class="gsnum">4</div><div class="gstxt"><strong>할인 입력 (선택)</strong><span>영업 할인 금액을 입력하면 차량가격에서 차감되어 취등록세·공채·할부원금이 모두 재계산됩니다</span></div></div>
+    <div class="guide-step"><div class="gsnum">5</div><div class="gstxt"><strong>보조금 입력</strong><span>지역 선택 시 서울·인천·김포는 국고/지방비/전환지원금 자동 입력됩니다. 다자녀·생애첫차 항목도 체크하세요</span></div></div>
+    <div class="guide-step"><div class="gsnum">6</div><div class="gstxt"><strong>등록·부대비용 확인</strong><span>취등록세는 VAT 제외 차량가 × 7% − 140만원(전기차 감면)으로 자동 계산됩니다</span></div></div>
+    <div class="guide-step"><div class="gsnum">7</div><div class="gstxt"><strong>구매 방식 선택</strong><span>현금·할부·리스·장기렌트 중 선택. 할부는 슬라이더로 금리(0.1% 단위)와 개월 수를 조절하세요</span></div></div>
+    <div class="guide-step"><div class="gsnum">8</div><div class="gstxt"><strong>견적서 출력·저장</strong><span>우측 패널 하단 버튼 또는 모바일 하단 바에서 출력/저장</span></div></div>
 
     <!-- 출력/저장 -->
     <div class="guide-sec-title">출력 및 저장 방법</div>
