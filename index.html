@@ -1486,8 +1486,7 @@ function moneyInput(el, callback){
 // 초기값 콤마 포맷 적용 (페이지 로드 시)
 function initMoneyInputs(){
   const ids=['acqTaxInput','bondCost','plateCost','deliveryCost','etcCost','discountCost',
-             'cashDeposit','instDeposit','instDown','instPrincipalDirect',
-             'leaseDeposit','rentalDeposit','rentalMonthly'];
+             'cashDeposit','instDeposit','instDown','instPrincipalDirect'];
   ids.forEach(id=>{
     const el=$(id);
     if(!el) return;
@@ -2420,7 +2419,7 @@ async function renderToCanvas(){
   });
 
   // 현금: 단일 컬럼 (480px)
-  // 할부/리스/렌트: 2컬럼 A4 비율 (900px)
+  // 할부: 2컬럼 A4 비율 (900px)
   const isFinance = S.payMode!=='cash';
   const W = isFinance ? 900*pr : 480*pr;
 
@@ -2439,7 +2438,7 @@ async function renderToCanvas(){
   return canvas;
 }
 
-// ── 2컬럼 렌더러 (할부/리스/렌트) ────────────────────────────────────
+// ── 2컬럼 렌더러 (할부) ────────────────────────────────────
 function drawCanvasTwoCol(ctx,W,pr,car,trim,color,carImg){
   const BG='#ffffff', HERO_BG='#0d1117';
   const INK='#1a1a2e', INK2='#4a4a6a', INK3='#9090a8';
@@ -2669,7 +2668,7 @@ function drawCanvasTwoCol(ctx,W,pr,car,trim,color,carImg){
   // ── 오른쪽 컬럼 ──
   let rY = bodyStartY;
   const mode=S.payMode;
-  const modeLabel=mode==='installment'?'할부':mode==='lease'?'리스':'장기렌트';
+  const modeLabel='할부';
 
   // 세로 구분선
   ctx.strokeStyle=SLATED; ctx.lineWidth=0.8*pr;
@@ -3516,7 +3515,7 @@ function resetAll(){
   S={carKey:null,trimIdx:0,colorIdx:0,seatIdx:0,payMode:'cash'};
   subChecks={child2:false,child3:false,first:false,conv:false};bondMode='exempt';acqManual=false;
   // 텍스트 인풋 초기화 (instMonthDirect는 hidden, 직접 처리)
-  ['acqTaxInput','bondCost','etcCost','discountCost','instRateDirect','instPrincipalDirect','instDownDirect','leaseDeposit','rentalDeposit','rentalMonthly'].forEach(id=>{const e=$(id);if(e)e.value='';});
+  ['acqTaxInput','bondCost','etcCost','discountCost','instRateDirect','instPrincipalDirect','instDownDirect'].forEach(id=>{const e=$(id);if(e)e.value='';});
   if($('instMonthDirect')) $('instMonthDirect').value='36';
   // 개월수 체크박스 → 36개월 기본 복원
   [12,24,36,48,60].forEach(m=>{ const c=$('cmp'+m); if(c) c.checked=(m===36); });
@@ -3597,7 +3596,7 @@ window.addEventListener('load', init);
     <div class="guide-step"><div class="gsnum">4</div><div class="gstxt"><strong>할인 입력 (선택)</strong><span>영업 할인 금액을 입력하면 차량가격에서 차감되어 취등록세·공채·할부원금이 모두 재계산됩니다</span></div></div>
     <div class="guide-step"><div class="gsnum">5</div><div class="gstxt"><strong>보조금 입력</strong><span>지역 선택 시 서울·인천·김포는 국고/지방비/전환지원금 자동 입력됩니다. 다자녀·생애첫차 항목도 체크하세요</span></div></div>
     <div class="guide-step"><div class="gsnum">6</div><div class="gstxt"><strong>등록·부대비용 확인</strong><span>취등록세는 VAT 제외 차량가 × 7% − 140만원(전기차 감면)으로 자동 계산됩니다</span></div></div>
-    <div class="guide-step"><div class="gsnum">7</div><div class="gstxt"><strong>구매 방식 선택</strong><span>현금·할부·리스·장기렌트 중 선택. 할부는 슬라이더로 금리(0.1% 단위)와 개월 수를 조절하세요</span></div></div>
+    <div class="guide-step"><div class="gsnum">7</div><div class="gstxt"><strong>구매 방식 선택</strong><span>현금·할부 중 선택. 할부는 금리(0.1% 단위)와 개월 수를 조절하세요</span></div></div>
     <div class="guide-step"><div class="gsnum">8</div><div class="gstxt"><strong>견적서 출력·저장</strong><span>우측 패널 하단 버튼 또는 모바일 하단 바에서 출력/저장</span></div></div>
 
     <!-- 출력/저장 -->
