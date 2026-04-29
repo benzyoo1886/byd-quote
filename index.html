@@ -728,6 +728,7 @@ input:-webkit-autofill{ -webkit-box-shadow:0 0 0 1000px var(--s2) inset; -webkit
     <span style="font-size:9px;color:var(--muted);margin-left:auto;">추가비용 없음</span>
   </div>
   <div class="card-body">
+    <div style="font-size:10px;color:var(--g);font-weight:700;letter-spacing:1.5px;margin-bottom:8px;">외장 색상</div>
     <div class="color-grid" id="colorGrid">
       <div style="color:var(--muted);font-size:13px;">← 차종을 선택하세요</div>
     </div>
@@ -742,6 +743,11 @@ input:-webkit-autofill{ -webkit-box-shadow:0 0 0 1000px var(--s2) inset; -webkit
       <div id="colorEditRows"></div>
     </div>
     <button class="btn-toggle-edit" id="btnColorEdit" onclick="toggleColorEdit()">✏ 색상 직접 수정</button>
+
+    <div style="font-size:10px;color:var(--g);font-weight:700;letter-spacing:1.5px;margin:18px 0 8px;padding-top:14px;border-top:1px solid var(--border);">내장 색상 (시트)</div>
+    <div class="color-grid" id="seatGrid">
+      <div style="color:var(--muted);font-size:13px;">← 차종을 선택하세요</div>
+    </div>
   </div>
 </div>
 
@@ -766,6 +772,7 @@ input:-webkit-autofill{ -webkit-box-shadow:0 0 0 1000px var(--s2) inset; -webkit
         <div class="fl">지역 선택 <span class="tag">서울·인천·김포 자동입력</span></div>
         <select class="fi" id="regionSel" onchange="onRegionChange()">
           <option value="">-- 지역 선택 --</option>
+          <option value="none">⊘ 보조금 없음 (미적용)</option>
           <optgroup label="▶ 자동입력">
             <option value="서울">서울특별시</option>
             <option value="인천">인천광역시</option>
@@ -928,8 +935,6 @@ input:-webkit-autofill{ -webkit-box-shadow:0 0 0 1000px var(--s2) inset; -webkit
     <div class="pay-tabs">
       <button class="pay-tab active" onclick="setPayMode('cash',this)">💵 현금</button>
       <button class="pay-tab" onclick="setPayMode('installment',this)">📅 할부</button>
-      <button class="pay-tab" onclick="setPayMode('lease',this)">🏢 리스</button>
-      <button class="pay-tab" onclick="setPayMode('rental',this)">🚘 장기렌트</button>
     </div>
 
     <div class="pay-panel active" id="panel-cash">
@@ -1083,23 +1088,6 @@ input:-webkit-autofill{ -webkit-box-shadow:0 0 0 1000px var(--s2) inset; -webkit
       </div>
     </div>
 
-    <div class="pay-panel" id="panel-lease">
-      <div class="grid2">
-        <div class="fg"><div class="fl">선납금</div><div class="fr"><input class="fi" id="leaseDeposit" type="text" inputmode="numeric" placeholder="0" oninput="moneyInput(this,calc)"><span class="funit">원</span></div></div>
-        <div class="fg"><div class="fl">리스 기간</div><select class="fi" id="leaseMonth" onchange="calc()"><option value="24">24개월</option><option value="36" selected>36개월</option><option value="48">48개월</option><option value="60">60개월</option></select></div>
-        <div class="fg"><div class="fl">리스 금리 (연%)</div><div class="fr"><input class="fi" style="width:90px;" id="leaseRate" type="text" inputmode="decimal" value="4.5" oninput="calc()"><span class="funit">%</span></div></div>
-        <div class="fg"><div class="fl">잔존가치율</div><div class="fr"><input class="fi" style="width:90px;" id="leaseResidual" type="text" inputmode="decimal" value="30" oninput="calc()"><span class="funit">%</span></div></div>
-      </div>
-    </div>
-
-    <div class="pay-panel" id="panel-rental">
-      <div class="grid2">
-        <div class="fg"><div class="fl">선납금</div><div class="fr"><input class="fi" id="rentalDeposit" type="text" inputmode="numeric" placeholder="0" oninput="moneyInput(this,calc)"><span class="funit">원</span></div></div>
-        <div class="fg"><div class="fl">렌트 기간</div><select class="fi" id="rentalMonth" onchange="calc()"><option value="24">24개월</option><option value="36" selected>36개월</option><option value="48">48개월</option><option value="60">60개월</option></select></div>
-        <div class="fg"><div class="fl">월 렌트료</div><div class="fr"><input class="fi" id="rentalMonthly" type="text" inputmode="numeric" placeholder="견적 후 입력" oninput="moneyInput(this,calc)"><span class="funit">원/월</span></div></div>
-        <div class="fg"><div class="fl">보험</div><select class="fi" id="rentalInsurance" onchange="calc()"><option value="포함">보험 포함</option><option value="미포함">보험 미포함</option></select></div>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -1265,7 +1253,8 @@ const CARS = {
       [{name:"스키 화이트 + 타임 그레이",hex:"#e8edf2",hex2:"#8a9aaa"},
        {name:"아틀란티스 그레이 + 코스모스 블랙",hex:"#6b7e8a",hex2:"#1a1a22"},
        {name:"스키 화이트",hex:"#e8edf2"}]
-    ]
+    ],
+    seats:[{name:"블랙",hex:"#1a1a1a"}]
   },
   atto3:{
     name:"BYD ATTO 3", nameKo:"BYD 아토3", type:"소형 SUV EV", emoji:"🚗",
@@ -1275,7 +1264,8 @@ const CARS = {
     colorsByTrim:[
       [{name:"코스모스 블랙",hex:"#1a1a22"},{name:"타임 그레이",hex:"#8a9aaa"},
        {name:"스키 화이트",hex:"#e8edf2"},{name:"아틀란티스 그레이",hex:"#6b7e8a"}]
-    ]
+    ],
+    seats:[{name:"블랙",hex:"#1a1a1a"}]
   },
   seal:{
     name:"BYD SEAL", nameKo:"BYD 씰", type:"중형 세단 EV", emoji:"🦭",
@@ -1291,7 +1281,8 @@ const CARS = {
        {name:"샤크 그레이",hex:"#4a5260"},{name:"아틀란티스 그레이",hex:"#6b7e8a"}],
       [{name:"오로라 화이트",hex:"#f2f3f5"},{name:"코스모스 블랙",hex:"#1a1a22"},
        {name:"샤크 그레이",hex:"#4a5260"},{name:"아틀란티스 그레이",hex:"#6b7e8a"}]
-    ]
+    ],
+    seats:[{name:"블랙",hex:"#1a1a1a"}]
   },
   sealion7:{
     name:"BYD SEALION 7", nameKo:"BYD 씨라이언7", type:"중형 SUV EV", emoji:"🦁",
@@ -1304,6 +1295,10 @@ const CARS = {
        {name:"샤크 그레이",hex:"#4a5260"},{name:"아틀란티스 그레이",hex:"#6b7e8a"}],
       [{name:"오로라 화이트",hex:"#f2f3f5"},{name:"코스모스 블랙",hex:"#1a1a22"},
        {name:"샤크 그레이",hex:"#4a5260"},{name:"아틀란티스 그레이",hex:"#6b7e8a"}]
+    ],
+    seats:[
+      {name:"블랙",hex:"#1a1a1a"},
+      {name:"타히티 블루",hex:"#f0f4f8",hex2:"#4a8eb8"}
     ]
   }
 };
@@ -1430,7 +1425,7 @@ function calcBondAuto(){
 }
 
 // ── 상태 ──
-let S={carKey:null,trimIdx:0,colorIdx:0,payMode:'cash'};
+let S={carKey:null,trimIdx:0,colorIdx:0,seatIdx:0,payMode:'cash'};
 let subChecks={child2:false,child3:false,first:false,conv:false};
 let bondMode='exempt';
 let acqManual=false;
@@ -1530,7 +1525,7 @@ function renderCarGrid(){
 function selectCar(key,el){
   document.querySelectorAll('.car-item').forEach(c=>c.classList.remove('active'));
   el.classList.add('active');
-  S.carKey=key;S.trimIdx=0;S.colorIdx=0;
+  S.carKey=key;S.trimIdx=0;S.colorIdx=0;S.seatIdx=0;
   acqManual=false;$('acqTaxInput').value='';
   // 차량 변경 시 할부원금 직접입력 초기화
   const pEl=$('instPrincipalDirect');if(pEl)pEl.value='';
@@ -1547,7 +1542,7 @@ function selectCar(key,el){
   $('carHeroName').textContent=CARS[key].name;
   const subEl=$('carHeroSub'); if(subEl) subEl.textContent=heroSubs[key]||'';
   $('btnColorEdit').style.display='block';
-  renderTrims();renderColors();onRegionChange();onDownPctChange();calc();
+  renderTrims();renderColors();renderSeats();onRegionChange();onDownPctChange();calc();
 }
 
 function renderTrims(){
@@ -1586,6 +1581,19 @@ function renderColors(){
     grid.appendChild(d);
   });
   if($('colorEditPanel').style.display!=='none')buildColorEditRows();
+}
+
+function renderSeats(){
+  const car=CARS[S.carKey];const grid=$('seatGrid');if(!grid)return;grid.innerHTML='';
+  const seats=car.seats||[{name:'블랙',hex:'#1a1a1a'}];
+  if(S.seatIdx>=seats.length)S.seatIdx=0;
+  seats.forEach((s,i)=>{
+    const d=document.createElement('div');d.className='color-item'+(i===S.seatIdx?' active':'');
+    const bg=s.hex2?`linear-gradient(135deg,${s.hex} 50%,${s.hex2} 50%)`:s.hex;
+    d.innerHTML=`<div class="color-swatch" style="background:${bg};box-shadow:inset 0 0 0 1px rgba(255,255,255,0.1);"></div><div class="color-name">${s.name}</div>`;
+    d.onclick=()=>{S.seatIdx=i;renderSeats();calc();};
+    grid.appendChild(d);
+  });
 }
 
 // ── 색상 편집 ──
@@ -1644,6 +1652,29 @@ function updateSubsidyLink(region){
 function onRegionChange(){
   const r=$('regionSel').value;
   updateSubsidyLink(r);
+
+  // ⊘ 보조금 없음 — 모든 보조금 항목 0원으로 초기화
+  if(r === 'none'){
+    $('subNat').value='';
+    $('subLoc').value='';
+    $('subConv').value='';
+    $('subTotal').value='';
+    // 추가지원금 체크박스 모두 해제
+    ['child2','child3','first','conv'].forEach(k=>{
+      subChecks[k]=false;
+      const el=$(`chk-${k}`); if(el) el.classList.remove('active');
+      const tg=$(`tgl-${k}`); if(tg) tg.innerHTML='';
+    });
+    showEl('docsChild', false);
+    showEl('docsFirst', false);
+    showEl('docsConvert', false);
+    // 보조금 미적용은 "지역 선택" 상태로 간주 → 무공해차 링크 숨김
+    const w=$('subsidyLinkWrap'); if(w) w.style.display='none';
+    onSubChange();
+    showToast('보조금 미적용 — 모든 보조금 0원 설정 ✓');
+    return;
+  }
+
   if(!r||!S.carKey)return;
 
   // 지역 선택 시 공채 자동계산 모드로 전환
@@ -2096,6 +2127,8 @@ function calc(){
   const trim=car.trims[S.trimIdx];
   const colors=car.colorsByTrim[S.trimIdx]||car.colorsByTrim[0];
   const color=colors[S.colorIdx]||colors[0];
+  const seats=car.seats||[{name:'블랙',hex:'#1a1a1a'}];
+  const seat=seats[S.seatIdx]||seats[0];
 
   const carPrice=trim.price;                      // MSRP (출고가) — 표시용
   const discount=pF('discountCost');               // 영업 할인
@@ -2174,7 +2207,7 @@ function calc(){
 
   // 견적 패널
   setQ('qCarNm',car.name);setQ('qCarTrim',trim.name+' · '+trim.spec);
-  setQ('qCarColor','색상: '+color.name);
+  setQ('qCarColor','외장: '+color.name+' · 내장: '+seat.name);
   setQ('qCarPrice',won(carPrice));
   // 할인 표시
   showEl('qDiscountRow', discount>0);
@@ -2312,19 +2345,6 @@ function calc(){
         : `<div class="q-line"><span class="ql" style="font-size:10px;color:var(--dim);">순차량가 ${won(Math.round(netCar2))} − 계약금(${won(dep)})</span></div>`) +
       `<div class="q-line"><span class="ql">기간 / 금리</span><span class="qv">${months}개월 / ${rate===0?'무이자':rate+'%'}</span></div>`;
 
-    } else if(S.payMode==='lease'){
-    qm.classList.add('show');
-    const dep=pF('leaseDeposit'),months=parseInt($('leaseMonth').value)||36;
-    const rate=pF('leaseRate')||4.5,resPct=pF('leaseResidual')||30;
-    const res=grand*resPct/100;
-    const monthly=pmt(Math.max(0,grand-dep-res),rate,months)+res*(rate/100/12);
-    setQ('qMonthlyLabel',`월 리스료 · ${rate}% · ${months}개월`);
-    setQ('qMonthlyAmt',wonP(Math.round(monthly)));
-    setQ('qMonthlyDetail',`선납금 ${won(dep)} · 잔존가치 ${resPct}%`);
-  } else if(S.payMode==='rental'){
-    const monthly=pF('rentalMonthly'),ins=$('rentalInsurance').value;
-    if(monthly>0){qm.classList.add('show');setQ('qMonthlyLabel',`월 렌트료 · ${ins}`);setQ('qMonthlyAmt',wonP(monthly));setQ('qMonthlyDetail',`장기렌트 · ${$('rentalMonth').value}개월`);}
-    else qm.classList.remove('show');
   }
 }
 
@@ -2477,8 +2497,11 @@ function drawCanvasTwoCol(ctx,W,pr,car,trim,color,carImg){
   const ds=`${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')}`;
   font(8.5,600); txtR(ds, W-pad, 16*pr, 8.5, 'rgba(255,255,255,0.85)');
   // 차량명 (히어로 하단)
-  font(17,900); txt(car.name, pad, heroH-42*pr, 17, '#ffffff');
-  font(8,400);  txt(trim.name+' · '+trim.spec, pad, heroH-22*pr, 8, 'rgba(255,255,255,0.65)');
+  // 17pt(=17pr) 차량명 → 트림(8pt)·색상(7.5pt)과 겹치지 않게 충분히 위로 배치
+  const _seat2 = (car.seats||[{name:'블랙'}])[S.seatIdx]||(car.seats||[{name:'블랙'}])[0];
+  font(17,900); txt(car.name, pad, heroH-60*pr, 17, '#ffffff');
+  font(8,400);  txt(trim.name+' · '+trim.spec, pad, heroH-34*pr, 8, 'rgba(255,255,255,0.65)');
+  font(7.5,400); txt('외장: '+color.name+'  ·  내장: '+_seat2.name, pad, heroH-18*pr, 7.5, 'rgba(255,255,255,0.55)');
 
   // 그린 하단라인
   fill(GRN); ctx.fillRect(0, heroH, W, 3*pr);
@@ -2515,12 +2538,15 @@ function drawCanvasTwoCol(ctx,W,pr,car,trim,color,carImg){
       lY += SEC_H + 1*pr;
 
     } else if(row.subtotal){
-      lY += 4*pr;
-      hlineCol(leftX, leftX+colW, lY, SLATED, 0.8); lY += 6*pr;
-      font(9,700);   txC(row.label, leftX, lY, LINE_H, 9, INK);
-      font(9,800);   txRC(row.val, leftX+colW, lY, LINE_H, 9, ACCENT);
-      lY += LINE_H;
-      hlineCol(leftX, leftX+colW, lY, SLATED, 1); lY += 8*pr;
+      // 실 차량 구매가 — 우측 '할부원금'과 격을 맞춘 박스 강조
+      lY += 6*pr;
+      const SH=38*pr;
+      fill(SLATE); ctx.fillRect(leftX, lY, colW, SH);
+      fill(ACCENT); ctx.fillRect(leftX, lY, 3*pr, SH);
+      font(8,600);  txC(row.label, leftX+10*pr, lY, SH*0.42, 8, INK2);
+      font(7,400);  txC('할부원금 산정 기준 · 등록비용·부대비용 제외', leftX+10*pr, lY+SH*0.42, SH*0.58, 7, INK3);
+      font(13,900); txRC(row.val, leftX+colW-8*pr, lY, SH, 13, ACCENT);
+      lY += SH + 8*pr;
 
     } else if(row.subtotal2){
       const H=20*pr;
@@ -2544,7 +2570,8 @@ function drawCanvasTwoCol(ctx,W,pr,car,trim,color,carImg){
 
     } else {
       const lc = row.bold ? INK : (row.dim ? INK3 : INK3);
-      const vc = row.red?'#d63031':row.yellow?GRN2:row.blue?ACCENT:row.dim?'#d63031':INK2;
+      // 색상 위계: red(deduction) | yellow(비용 강조) | blue(accent) | dim(부가정보=gray) | INK2(기본 비용)
+      const vc = row.red?'#d63031':row.yellow?'#e8a30f':row.blue?ACCENT:row.dim?INK3:INK2;
       const fs = row.dim ? 8 : 8.5;
       const fw = row.bold ? 700 : (row.dim ? 400 : 400);
       const indent = row.dim ? 6*pr : 0;
@@ -2776,28 +2803,7 @@ function drawCanvasTwoCol(ctx,W,pr,car,trim,color,carImg){
       font(13,900); txRC(won(Math.round(grandInitC)), rightX+colW-8*pr, rY, H, 13, GRN2);
       rY+=H+10*pr; }
 
-    } else if(mode==='lease'){
-    const dep=pF('leaseDeposit'), months=parseInt($('leaseMonth').value)||36;
-    const rate=pF('leaseRate')||4.5, resPct=pF('leaseResidual')||30;
-    const grand=parseFloat($('qGrandTotal').textContent.replace(/,/g,''))||0;
-    const res=grand*resPct/100;
-    const monthly=pmt(Math.max(0,grand-dep-res),rate,months)+res*(rate/100/12);
-    rSec('리스 조건');
-    if(dep>0) rLine('선납금 (보증금)', won(dep));
-    rLine('리스 기간', months+'개월');
-    rLine('리스 금리', rate.toFixed(1)+'% (연)');
-    rLine('잔존가치율 / 금액', resPct+'% / '+won(Math.round(res)));
-    rMonthBox('월 리스료', won(Math.round(monthly)));
-
-  } else if(mode==='rental'){
-    const dep=pF('rentalDeposit'), months=parseInt($('rentalMonth').value)||36;
-    const monthly=pF('rentalMonthly'), ins=$('rentalInsurance').value;
-    rSec('렌트 조건');
-    if(dep>0) rLine('선납금', won(dep));
-    rLine('렌트 기간', months+'개월');
-    rLine('보험', ins);
-    if(monthly>0) rMonthBox('월 렌트료', won(monthly));
-  }
+    }
 
   return Math.max(leftFinalY, rY) + pad*2;
 }
@@ -2856,8 +2862,11 @@ function drawCanvas(ctx,W,pr,car,trim,color,lines,carImg){
   const ds=`${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')}`;
   font(9,600); txtR(ds, W-pad, 14*pr, 9, 'rgba(255,255,255,0.85)');
   // 차량명: heroH 기준 (top baseline이므로 heroH-높이로 배치)
-  font(18,900); txt(car.name, pad, heroH-44*pr, 18, '#ffffff');
-  font(8.5,400); txt(trim.name+' · '+trim.spec+' | 색상: '+color.name, pad, heroH-22*pr, 8.5, 'rgba(255,255,255,0.65)');
+  // 18pt(=18pr) 차량명 → 트림(8.5pt)·색상(7.5pt)과 겹치지 않게 충분히 위로 배치
+  font(18,900); txt(car.name, pad, heroH-58*pr, 18, '#ffffff');
+  const _seat = (car.seats||[{name:'블랙'}])[S.seatIdx]||(car.seats||[{name:'블랙'}])[0];
+  font(8.5,400); txt(trim.name+' · '+trim.spec, pad, heroH-32*pr, 8.5, 'rgba(255,255,255,0.65)');
+  font(7.5,400); txt('외장: '+color.name+'  ·  내장: '+_seat.name, pad, heroH-16*pr, 7.5, 'rgba(255,255,255,0.55)');
 
   // 그린 라인 (heroH 바로 아래)
   fill(GRN); ctx.fillRect(0, heroH, W, 3*pr);
@@ -2875,10 +2884,15 @@ function drawCanvas(ctx,W,pr,car,trim,color,lines,carImg){
       y += SEC_H + 2*pr;
 
     } else if(row.subtotal){
-      hline(y, SLATED, 0.8); y += 8*pr;
-      font(11,700); txC(row.label, pad, y, LINE_H, 11, INK);
-      font(11,800); txRC(row.val, W-pad, y, LINE_H, 11, ACCENT);
-      y += LINE_H; hline(y, SLATED, 1); y += 12*pr;
+      // 실 차량 구매가 — 박스 강조
+      y += 6*pr;
+      const SH=42*pr;
+      fill(SLATE); ctx.fillRect(pad, y, cw, SH);
+      fill(ACCENT); ctx.fillRect(pad, y, 3*pr, SH);
+      font(9,600);  txC(row.label, pad+10*pr, y, SH*0.42, 9, INK2);
+      font(8,400);  txC('할부원금 산정 기준 · 등록비용·부대비용 제외', pad+10*pr, y+SH*0.42, SH*0.58, 8, INK3);
+      font(15,900); txRC(row.val, W-pad-8*pr, y, SH, 15, ACCENT);
+      y += SH + 10*pr;
 
     } else if(row.subtotal2){
       const H=22*pr;
@@ -2904,7 +2918,8 @@ function drawCanvas(ctx,W,pr,car,trim,color,lines,carImg){
 
     } else {
       const lc=row.bold?INK:INK3;
-      const vc=row.red?'#d63031':row.yellow?GRN2:row.blue?ACCENT:row.dim?INK3:INK2;
+      // 색상 위계: red(deduction) | yellow(비용 강조) | blue(accent) | dim(부가정보=gray) | INK2(기본 비용)
+      const vc=row.red?'#d63031':row.yellow?'#e8a30f':row.blue?ACCENT:row.dim?INK3:INK2;
       font(9.5, row.bold?700:400); txC(row.label, pad, y, LINE_H, 9.5, lc);
       font(9.5, row.bold?800:500); txRC(row.val||'–', W-pad, y, LINE_H, 9.5, vc);
       y += LINE_H;
@@ -3123,8 +3138,11 @@ function drawCompareCanvas(ctx,W,pr,car,trim,color,carImg,months,rate,principal,
   const ds=`${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')}`;
   font(8.5,600); tR(ds,W-pad,16*pr,20*pr,8.5,'rgba(255,255,255,0.85)');
   // 차량명 (히어로 하단)
-  font(17,900); txt(car.name,pad,heroH-42*pr,17,'#ffffff');
-  font(8,400);  txt(trim.name+' · '+trim.spec,pad,heroH-22*pr,8,'rgba(255,255,255,0.65)');
+  // 17pt 차량명 → 트림·색상과 겹치지 않게 충분히 위로 배치
+  const _seat3 = (car.seats||[{name:'블랙'}])[S.seatIdx]||(car.seats||[{name:'블랙'}])[0];
+  font(17,900); txt(car.name,pad,heroH-58*pr,17,'#ffffff');
+  font(8,400);  txt(trim.name+' · '+trim.spec,pad,heroH-34*pr,8,'rgba(255,255,255,0.65)');
+  font(7.5,400); txt('외장: '+color.name+'  ·  내장: '+_seat3.name,pad,heroH-18*pr,7.5,'rgba(255,255,255,0.55)');
   // 초록 하단 라인
   fill(GRN); ctx.fillRect(0,heroH,W,3*pr);
   y=heroH+3*pr+18*pr;
@@ -3495,7 +3513,7 @@ function onTrimPriceEdit(e, carKey, trimIdx){
 
 
 function resetAll(){
-  S={carKey:null,trimIdx:0,colorIdx:0,payMode:'cash'};
+  S={carKey:null,trimIdx:0,colorIdx:0,seatIdx:0,payMode:'cash'};
   subChecks={child2:false,child3:false,first:false,conv:false};bondMode='exempt';acqManual=false;
   // 텍스트 인풋 초기화 (instMonthDirect는 hidden, 직접 처리)
   ['acqTaxInput','bondCost','etcCost','discountCost','instRateDirect','instPrincipalDirect','instDownDirect','leaseDeposit','rentalDeposit','rentalMonthly'].forEach(id=>{const e=$(id);if(e)e.value='';});
@@ -3523,6 +3541,7 @@ function resetAll(){
   document.querySelectorAll('.car-item').forEach(c=>c.classList.remove('active'));
   $('trimList').innerHTML='<div style="color:var(--muted);font-size:13px;">← 먼저 차종을 선택하세요</div>';
   $('colorGrid').innerHTML='<div style="color:var(--muted);font-size:13px;">← 차종을 선택하세요</div>';
+  if($('seatGrid')) $('seatGrid').innerHTML='<div style="color:var(--muted);font-size:13px;">← 차종을 선택하세요</div>';
   ['child2','child3','first','conv'].forEach(k=>{
     const el=$(`chk-${k}`); if(el) el.classList.remove('active');
     const tl=$(`tgl-${k}`); if(tl) tl.innerHTML='';
