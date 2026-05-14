@@ -389,6 +389,21 @@ input[type=range]::-webkit-slider-thumb{
 .q-total-unit{font-size:13px;font-weight:400;}
 .q-region{font-size:9px;color:rgba(0,208,132,0.5);margin-top:4px;}
 
+/* 합산 항목 번호 마커 (①②③) */
+.q-mk{
+  display:inline-block;margin-right:5px;font-weight:800;
+  font-size:13px;line-height:1;vertical-align:-1px;
+}
+.q-mk1{color:var(--g);}
+.q-mk2{color:var(--yellow);}
+.q-mk3{color:var(--blue);}
+
+/* 총 예상 구매금액 박스 안 합산식 */
+.q-total-formula{
+  font-size:11px;font-weight:700;color:var(--g);
+  letter-spacing:1px;margin:2px 0 4px;opacity:0.85;
+}
+
 /* 월납입 */
 .q-monthly{
   background:var(--s2);border:1px solid var(--border2);
@@ -1129,7 +1144,7 @@ input:-webkit-autofill{ -webkit-box-shadow:0 0 0 1000px var(--s2) inset; -webkit
     <div class="q-line" id="qC3Row" style="display:none;padding-left:8px;"><span class="ql" style="color:var(--dim);font-size:10px;">└ 다자녀 (3명+)</span><span class="qv red" style="font-size:10px;">-2,000,000원</span></div>
     <div class="q-line" id="qFstRow" style="display:none;padding-left:8px;"><span class="ql" style="color:var(--dim);font-size:10px;">└ 생애 첫차</span><span class="qv red" id="qSubFst" style="font-size:10px;">–</span></div>
 
-    <div class="q-sub"><span class="ql">실 차량 구매가 (순차량가)</span><span class="qv" id="qNetCar">–</span></div>
+    <div class="q-sub"><span class="ql"><span class="q-mk q-mk1">①</span>실 차량 구매가 (순차량가)</span><span class="qv" id="qNetCar">–</span></div>
 
     <div class="q-sec">등록비용</div>
     <div class="q-line"><span class="ql">취등록세 (감면 전)</span><span class="qv strike" id="qAcqBefore">–</span></div>
@@ -1137,7 +1152,7 @@ input:-webkit-autofill{ -webkit-box-shadow:0 0 0 1000px var(--s2) inset; -webkit
     <div class="q-line"><span class="ql">취등록세 (감면 후)</span><span class="qv yellow" id="qAcqAfter">–</span></div>
     <div class="q-line"><span class="ql">공채</span><span class="qv dim" id="qBond">면제</span></div>
     <div class="q-line" style="background:rgba(255,190,61,0.07);padding:5px 4px;border-radius:6px;margin-top:2px;">
-      <span class="ql" style="font-weight:700;color:var(--yellow);">등록비용 합계</span>
+      <span class="ql" style="font-weight:700;color:var(--yellow);"><span class="q-mk q-mk2">②</span>등록비용 합계</span>
       <span class="qv yellow" id="qRegTotal" style="font-size:13px;font-weight:800;">–</span>
     </div>
 
@@ -1146,12 +1161,13 @@ input:-webkit-autofill{ -webkit-box-shadow:0 0 0 1000px var(--s2) inset; -webkit
     <div class="q-line"><span class="ql">탁송료</span><span class="qv" id="qDelivery">–</span></div>
     <div class="q-line" id="qEtcRow" style="display:none"><span class="ql">기타</span><span class="qv" id="qEtc">–</span></div>
     <div class="q-line" style="background:rgba(61,158,255,0.07);padding:5px 4px;border-radius:6px;margin-top:2px;">
-      <span class="ql" style="font-weight:700;color:var(--blue);">부대비용 합계</span>
+      <span class="ql" style="font-weight:700;color:var(--blue);"><span class="q-mk q-mk3">③</span>부대비용 합계</span>
       <span class="qv blue" id="qMiscTotal" style="font-size:13px;font-weight:800;">–</span>
     </div>
 
     <div class="q-total">
       <div class="q-total-label">총 예상 구매금액</div>
+      <div class="q-total-formula">① + ② + ③</div>
       <div class="q-total-amount"><span id="qGrandTotal">–</span><span class="q-total-unit"> 원</span></div>
       <div class="q-region" id="qRegion"></div>
     </div>
@@ -2377,25 +2393,24 @@ function buildQuoteLines(){
   if($('qC2Row').style.display!=='none')lines.push({label:'└ 다자녀 (2명)',val:'-1,000,000원',red:true,dim:true});
   if($('qC3Row').style.display!=='none')lines.push({label:'└ 다자녀 (3명+)',val:'-2,000,000원',red:true,dim:true});
   if($('qFstRow').style.display!=='none')lines.push({label:'└ 생애 첫차',val:collect('qSubFst'),red:true,dim:true});
-  lines.push({subtotal:true,label:'실 차량 구매가',val:collect('qNetCar')});
+  lines.push({subtotal:true,label:'① 실 차량 구매가',val:collect('qNetCar')});
   lines.push({sec:'등록비용'});
   lines.push({label:'취등록세 (감면 전)',val:collect('qAcqBefore'),strike:true});
   lines.push({label:'전기차 감면 (-1,400,000원)',val:collect('qAcqReduce'),red:true});
   lines.push({label:'취등록세 (감면 후)',val:collect('qAcqAfter'),yellow:true});
   lines.push({label:'공채',val:collect('qBond'),dim:true});
   lines.push({notice:true, label:'※ 공채 할인율은 매일 변동되어 실제 등록일 기준으로 달라질 수 있습니다.'});
+  // 등록비용 합계 (②) - 작은 박스
+  const _regV=parseInt((collect('qRegTotal')||'0').replace(/[^0-9]/g,''))||0;
+  if(_regV>0) lines.push({subtotal2:true, label:'② 등록비용 합계', val:won(_regV), color:'yellow'});
+
   lines.push({sec:'부대비용'});
   lines.push({label:'등록 부대비용',val:collect('qPlate')});
   lines.push({label:'탁송료',val:collect('qDelivery')});
   if($('qEtcRow').style.display!=='none')lines.push({label:'기타',val:collect('qEtc')});
-
-  // 등록+부대 하나로 통합 (합계 행 중복 제거)
-  const _regV=parseInt((collect('qRegTotal')||'0').replace(/[^0-9]/g,''))||0;
+  // 부대비용 합계 (③) - 작은 박스
   const _miscV=parseInt((collect('qMiscTotal')||'0').replace(/[^0-9]/g,''))||0;
-  const _costSum=_regV+_miscV;
-  if(_costSum>0){
-    lines.push({costGrand:true, label:'등록 + 부대비용 합계', val:won(_costSum)});
-  }
+  if(_miscV>0) lines.push({subtotal2:true, label:'③ 부대비용 합계', val:won(_miscV), color:'blue'});
 
   return lines;
 }
@@ -2548,15 +2563,13 @@ function drawCanvasTwoCol(ctx,W,pr,car,trim,color,carImg){
       lY += SH + 8*pr;
 
     } else if(row.subtotal2){
-      const H=20*pr;
+      const H=22*pr;
+      const sub2c = row.color==='yellow' ? '#e8a30f' : row.color==='blue' ? '#3d9eff' : row.color==='red' ? '#d63031' : GRN2;
       fill(SLATE); ctx.fillRect(leftX, lY, colW, H);
-      const sub2c = row.color==='red' ? '#d63031' : row.color==='blue' ? ACCENT : GRN2;
-      font(8.5,700); txC(row.label, leftX+8*pr, lY, H, 8.5, INK2);
-      font(9,800);   txRC(row.val, leftX+colW-4*pr, lY, H, 9, sub2c);
-      lY += H + 2*pr;
-      const NH=13*pr;
-      font(6.5,400); txt(row.label, leftX+2*pr, lY+1*pr, 6.5, INK3);
-      lY += NH;
+      fill(sub2c); ctx.fillRect(leftX, lY, 3*pr, H);
+      font(9,800);   txC(row.label, leftX+8*pr, lY, H, 9, sub2c);
+      font(10,900);  txRC(row.val, leftX+colW-6*pr, lY, H, 10, sub2c);
+      lY += H + 4*pr;
 
     } else if(row.costGrand){
       lY += 4*pr;
@@ -2581,12 +2594,13 @@ function drawCanvasTwoCol(ctx,W,pr,car,trim,color,carImg){
     }
   }
 
-  // 총합계 박스
+  // 총합계 박스 (① + ② + ③ 식 포함)
   lY += 10*pr;
-  const totH = 50*pr;
+  const totH = 58*pr;
   fill(ACCENT); ctx.fillRect(leftX, lY, colW, totH);
-  font(8,600);   txC('총 예상 구매금액', leftX+12*pr, lY, totH*0.45, 8, 'rgba(255,255,255,0.7)');
-  font(16,900);  txRC($('qGrandTotal').textContent+'원', leftX+colW-12*pr, lY+totH*0.45, totH*0.55, 16, '#ffffff');
+  font(8,600);    txC('총 예상 구매금액', leftX+12*pr, lY, totH*0.32, 8, 'rgba(255,255,255,0.7)');
+  font(7.5,700);  txC('① + ② + ③', leftX+12*pr, lY+totH*0.32, totH*0.26, 7.5, 'rgba(0,255,157,0.85)');
+  font(16,900);   txRC($('qGrandTotal').textContent+'원', leftX+colW-12*pr, lY+totH*0.40, totH*0.60, 16, '#ffffff');
   lY += totH + 12*pr;
 
   // 서류 박스 - 2컬럼 (공통 | 추가서류)
@@ -2894,12 +2908,13 @@ function drawCanvas(ctx,W,pr,car,trim,color,lines,carImg){
       y += SH + 10*pr;
 
     } else if(row.subtotal2){
-      const H=22*pr;
+      const H=24*pr;
+      const sub2c = row.color==='yellow' ? '#e8a30f' : row.color==='blue' ? '#3d9eff' : row.color==='red' ? '#d63031' : GRN2;
       fill(SLATE); ctx.fillRect(pad, y, cw, H);
-      fill(GRN);   ctx.fillRect(pad, y, 3*pr, H);
-      font(9,700);  txC(row.label, pad+8*pr, y, H, 9, INK2);
-      font(10,800); txRC(row.val, W-pad-6*pr, y, H, 10, INK);
-      y += H + 4*pr;
+      fill(sub2c); ctx.fillRect(pad, y, 3*pr, H);
+      font(9.5,800);  txC(row.label, pad+8*pr, y, H, 9.5, sub2c);
+      font(11,900);   txRC(row.val, W-pad-8*pr, y, H, 11, sub2c);
+      y += H + 5*pr;
 
     } else if(row.notice){
       const NH=15*pr;
@@ -2926,12 +2941,13 @@ function drawCanvas(ctx,W,pr,car,trim,color,lines,carImg){
     }
   }
 
-  // 총합계 박스
+  // 총합계 박스 (① + ② + ③ 식 포함)
   y += 12*pr;
-  const totH=60*pr;
+  const totH=70*pr;
   fill(ACCENT); ctx.fillRect(pad, y, cw, totH);
-  font(9,600);  txC('총 예상 구매금액', pad+14*pr, y, totH*0.44, 9, 'rgba(255,255,255,0.7)');
-  font(21,900); txRC($('qGrandTotal').textContent+'원', W-pad-14*pr, y+totH*0.44, totH*0.56, 21, '#ffffff');
+  font(9,600);    txC('총 예상 구매금액', pad+14*pr, y, totH*0.32, 9, 'rgba(255,255,255,0.7)');
+  font(8.5,700);  txC('① + ② + ③', pad+14*pr, y+totH*0.32, totH*0.26, 8.5, 'rgba(0,255,157,0.85)');
+  font(21,900);   txRC($('qGrandTotal').textContent+'원', W-pad-14*pr, y+totH*0.40, totH*0.60, 21, '#ffffff');
   y += totH + 16*pr;
 
   // 현금 결제 시: 계약금 / 잔금 안내
@@ -3183,30 +3199,40 @@ function drawCompareCanvas(ctx,W,pr,car,trim,color,carImg,months,rate,principal,
     hln(pad,pad+cw,y+RH,SLATED); vln(RC,y,y+RH,SLATED); y+=RH;
   }
 
-  // 순차량가 / 등록비용합계
+  // 등록비용 / 부대비용 분리
+  // (호출부에서 regM = 취등록세+공채+부대비용 모두 합산 상태이므로 부대만 빼서 순수 등록비용 추출)
+  const miscV = plateV + deliveryV + etcV;
+  const regOnly = Math.max(0, regM - miscV);
+  const YELLOW='#e8a30f', BLUE='#3d9eff';
+
+  // 1행: ① 순 차량가 (좌) / ② 등록비용 합계 (우)
   const TH=30*pr;
   fill(SLATE); ctx.fillRect(LC,y,CW1,TH);
-  fill(ACCENT); ctx.fillRect(LC,y,3*pr,TH);
-  font(8,600); tL('순 차량가',LC+10*pr,y,TH,8,INK2);
-  font(10,900); tR(won(netC),LC+CW1-8*pr,y,TH,10,ACCENT);
+  fill(GRN); ctx.fillRect(LC,y,3*pr,TH);
+  font(8,700); tL('① 순 차량가',LC+10*pr,y,TH,8,GRN2);
+  font(10,900); tR(won(netC),LC+CW1-8*pr,y,TH,10,GRN2);
   fill(SLATE); ctx.fillRect(RC,y,CW2,TH);
-  fill(GRN); ctx.fillRect(RC,y,3*pr,TH);
-  font(8,600); tL('등록비용 합계',RC+10*pr,y,TH,8,INK2);
-  font(10,800); tR(won(regM),RC+CW2-8*pr,y,TH,10,GRN2);
+  fill(YELLOW); ctx.fillRect(RC,y,3*pr,TH);
+  font(8,700); tL('② 등록비용 합계',RC+10*pr,y,TH,8,YELLOW);
+  font(10,900); tR(won(regOnly),RC+CW2-8*pr,y,TH,10,YELLOW);
   hln(pad,pad+cw,y+TH,SLATED); vln(RC,y,y+TH,SLATED); y+=TH;
 
-  // 계약금 (오른쪽 별도행)
-  fill(SLATE); ctx.fillRect(LC,y,CW1,RH);
-  fill('#ffffff'); ctx.fillRect(RC,y,CW2,RH);
-  font(8,400); tL('계약금',RC+10*pr,y,RH,8,INK3);
-  font(8.5,600); tR(won(dep),RC+CW2-8*pr,y,RH,8.5,INK2);
-  hln(pad,pad+cw,y+RH,SLATED); vln(RC,y,y+RH,SLATED); y+=RH;
+  // 2행: ③ 부대비용 합계 (좌) / 계약금 (우)
+  fill(SLATE); ctx.fillRect(LC,y,CW1,TH);
+  fill(BLUE); ctx.fillRect(LC,y,3*pr,TH);
+  font(8,700); tL('③ 부대비용 합계',LC+10*pr,y,TH,8,BLUE);
+  font(10,900); tR(won(miscV),LC+CW1-8*pr,y,TH,10,BLUE);
+  fill('#ffffff'); ctx.fillRect(RC,y,CW2,TH);
+  font(8,400); tL('계약금',RC+10*pr,y,TH,8,INK3);
+  font(8.5,600); tR(won(dep),RC+CW2-8*pr,y,TH,8.5,INK2);
+  hln(pad,pad+cw,y+TH,SLATED); vln(RC,y,y+TH,SLATED); y+=TH;
 
-  // 총 예상 구매금액
-  const GT=34*pr;
+  // 총 예상 구매금액 (① + ② + ③)
+  const GT=44*pr;
   fill(ACCENT); ctx.fillRect(pad,y,cw,GT);
-  font(8.5,600); tL('총 예상 구매금액  (순차량가 + 등록비용)',pad+12*pr,y,GT,8.5,'rgba(255,255,255,0.75)');
-  font(12,900); tR(won(netC+regM),pad+cw-12*pr,y,GT,12,'#ffffff');
+  font(8.5,600); tL('총 예상 구매금액',pad+12*pr,y,GT*0.5,8.5,'rgba(255,255,255,0.75)');
+  font(7.5,700); tL('① + ② + ③',pad+12*pr,y+GT*0.5,GT*0.5,7.5,'rgba(0,255,157,0.85)');
+  font(13,900); tR(won(netC+regOnly+miscV),pad+cw-12*pr,y+GT*0.18,GT*0.64,13,'#ffffff');
   y+=GT+22*pr;
 
   // ── 계약 조건 비교 ──
@@ -3258,9 +3284,11 @@ function drawCompareCanvas(ctx,W,pr,car,trim,color,carImg,months,rate,principal,
   row('월 납입금', months.map(m=>won(Math.round(pmt(principal,rate,m)))),
     {accent:true,bold:true,h:MONO_H,vsz:13,lsz:9});
 
-  // 초기납입 합계
-  const initCash=down>0?down+regM:dep+regM;
-  const initH=52*pr;
+  // 초기납입 합계 (선수금/계약금 + 등록비용 + 부대비용 분리 표시)
+  const _initMisc = plateV + deliveryV + etcV;
+  const _initReg  = Math.max(0, regM - _initMisc);
+  const initCash  = (down>0?down:dep) + _initReg + _initMisc;
+  const initH=72*pr;
   fill(SLATE); ctx.fillRect(pad,y,labelW,initH);
   fill(GRN); ctx.fillRect(pad,y,3*pr,initH);
   font(8,700); tC('초기납입 합계',pad+labelW/2,y,initH,8,ACCENT);
@@ -3268,12 +3296,15 @@ function drawCompareCanvas(ctx,W,pr,car,trim,color,carImg,months,rate,principal,
   months.forEach((m,i)=>{
     const cx=pad+labelW+i*dataW;
     fill(i%2===0?'#ffffff':SLATE); ctx.fillRect(cx,y,dataW,initH);
-    const d1=down>0?`선수금 ${won(down)} (계약금 포함)`:`계약금 ${won(dep)}`;
-    const d2=`+ 등록비용 ${won(regM)}`;
-    const total=initCash;
-    font(6.5,400); tC(d1,cx+dataW/2,y+5*pr,initH*0.32,6.5,INK3);
-    font(6.5,400); tC(d2,cx+dataW/2,y+initH*0.36,initH*0.25,6.5,INK3);
-    font(10,800);  tC(won(total),cx+dataW/2,y+initH*0.61,initH*0.39,10,ACCENT);
+    const d1=down>0?`선수금 ${won(down)}`:`계약금 ${won(dep)}`;
+    const d2=`+ 등록비용 ${won(_initReg)}`;
+    const d3=`+ 부대비용 ${won(_initMisc)}`;
+    // 3줄 내역 (작은 글씨)
+    font(6.5,400); tC(d1, cx+dataW/2, y+3*pr,         initH*0.18, 6.5, INK3);
+    font(6.5,400); tC(d2, cx+dataW/2, y+initH*0.20,   initH*0.18, 6.5, INK3);
+    font(6.5,400); tC(d3, cx+dataW/2, y+initH*0.37,   initH*0.18, 6.5, INK3);
+    // 합계 (큰 글씨)
+    font(10,800);  tC(won(initCash), cx+dataW/2, y+initH*0.58, initH*0.42, 10, ACCENT);
     if(i<n-1) vln(cx+dataW,y,y+initH,SLATED);
   });
   hln(pad,pad+cw,y+initH,SLATED); y+=initH+16*pr;
@@ -3479,7 +3510,32 @@ function showShareModal(){
 function ivPrint(){
   const win=window.open('','_blank');
   if(!win){showToast('팝업 차단됨 — 팝업 허용 후 재시도');return;}
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${ivFname}</title><style>*{margin:0;padding:0;}body{background:#fff;}img{width:100%;display:block;}@media print{@page{size:A4;margin:8mm;}}</style></head><body><img src="${ivDataURL}"><scr`+`ipt>window.onload=()=>window.print();<\/script></body></html>`);
+
+  // 이미지 비율로 A4 페이지 방향 자동 결정
+  const imgEl = $('ivImg');
+  const iw = imgEl.naturalWidth  || 800;
+  const ih = imgEl.naturalHeight || 1100;
+  const orientation = ih >= iw ? 'portrait' : 'landscape';
+  // A4 사용 가능 영역 (mm) - 페이지 여백 5mm씩 차감
+  const pageW = orientation==='portrait' ? 200 : 287;
+  const pageH = orientation==='portrait' ? 287 : 200;
+
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${ivFname}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{background:#fff;width:100%;height:100%;}
+body{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:8px;}
+img{display:block;max-width:96vw;max-height:96vh;width:auto;height:auto;}
+@media print{
+  @page{size:A4 ${orientation};margin:5mm;}
+  html,body{height:auto;background:#fff;}
+  body{display:block;min-height:auto;padding:0;}
+  img{display:block;max-width:${pageW}mm;max-height:${pageH}mm;width:auto;height:auto;margin:0 auto;page-break-inside:avoid;}
+}
+</style></head><body>
+<img src="${ivDataURL}">
+<scr`+`ipt>window.onload=()=>setTimeout(()=>window.print(),200);<\/script>
+</body></html>`);
   win.document.close();
 }
 
