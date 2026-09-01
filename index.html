@@ -804,6 +804,11 @@ input:-webkit-autofill{ -webkit-box-shadow:0 0 0 1000px var(--s2) inset; -webkit
             <option value="제주">제주특별자치도</option>
           </optgroup>
         </select>
+        <div id="regModeRow" style="display:flex;align-items:center;gap:7px;margin-top:9px;flex-wrap:wrap;">
+          <span style="font-size:11px;color:var(--dim);">지역 금액을</span>
+          <button type="button" class="rmode active" data-rmode="discount" onclick="setRegionMode('discount')">할인으로</button>
+          <button type="button" class="rmode" data-rmode="subsidy" onclick="setRegionMode('subsidy')">보조금으로</button>
+        </div>
         <!-- 보조금 조회 버튼 -->
         <div id="subsidyLinkWrap" style="display:none;margin-top:10px;">
           <a id="subsidyLink" href="#" target="_blank"
@@ -1215,6 +1220,11 @@ input:-webkit-autofill{ -webkit-box-shadow:0 0 0 1000px var(--s2) inset; -webkit
 
 </div><!-- /main -->
 
+<style>
+.rmode{font-size:11px;font-weight:600;padding:5px 11px;border-radius:7px;cursor:pointer;
+  border:1.5px solid rgba(255,255,255,.14);background:transparent;color:var(--dim);font-family:inherit}
+.rmode.active{border-color:#00c86e;color:#00c86e;background:rgba(0,200,110,.10)}
+</style>
 <!-- 오버레이 -->
 <div class="overlay" id="overlay">
   <div class="spinner"></div>
@@ -1304,9 +1314,12 @@ const CARS = {
     name:"BYD SEALION 7", nameKo:"BYD 씨라이언7", type:"중형 SUV EV", emoji:"🦁",
     trims:[
       {name:"SEALION 7",     spec:"82.56kWh | 상온 398km / 저온 385km | RWD 230kW", price:44900000},
-      {name:"SEALION 7 Plus",spec:"82.56kWh | 상온 398km / 저온 385km | RWD 230kW", price:46900000}
+      {name:"SEALION 7 Plus",spec:"82.56kWh | 상온 398km / 저온 385km | RWD 230kW", price:46900000},
+      {name:"SEALION 7 AWD", spec:"82.56kWh | 주행거리 미고시 | AWD 듀얼모터 · 20인치", price:53900000}
     ],
     colorsByTrim:[
+      [{name:"오로라 화이트",hex:"#f2f3f5"},{name:"코스모스 블랙",hex:"#1a1a22"},
+       {name:"샤크 그레이",hex:"#4a5260"},{name:"아틀란티스 그레이",hex:"#6b7e8a"}],
       [{name:"오로라 화이트",hex:"#f2f3f5"},{name:"코스모스 블랙",hex:"#1a1a22"},
        {name:"샤크 그레이",hex:"#4a5260"},{name:"아틀란티스 그레이",hex:"#6b7e8a"}],
       [{name:"오로라 화이트",hex:"#f2f3f5"},{name:"코스모스 블랙",hex:"#1a1a22"},
@@ -1384,6 +1397,17 @@ const CONFIG = {
   SAVE_10Y:  '1,650만원',
   SAVE_NOTE: '기준: 휘발유 1,700원 · 급속충전 347원/kWh · 가솔린 12km/L · 전비 4.5km/kWh'
 };
+
+// ── 3-1. 보조금 미고시 트림 ────────────────────────────────────────
+// 신규 출시로 국고/지방비 보조금이 아직 고시되지 않은 트림.
+// 여기에 들어 있으면 지역을 골라도 보조금을 자동입력하지 않고 빈칸으로 둔다
+// (틀린 금액이 자동으로 채워져 견적이 낮게 나가는 사고 방지).
+// 보조금이 고시되면 ① 아래 배열에서 그 키를 지우고
+//                  ② SUBSIDY_DB(서울·인천·김포) + NAT_SUBSIDY 에 같은 키를 추가한다.
+//   예) sealion7_2: [국고, 지방비, 전환지원금]
+const SUBSIDY_TBD = [
+  'sealion7_2'   // SEALION 7 AWD — 2026-09-01 출시, 보조금 미고시
+];
 
 // ══════════════════════════════════════════════════════════════════
 // ▼ 아래는 로직 코드입니다. 수정하지 마세요.
@@ -1686,6 +1710,41 @@ function updateSubsidyLink(region){
   wrap.style.display = 'block';
 }
 
+/* ── 지역 금액을 어디에 넣을지 ────────────────────────────────
+   할인  = 차량 가격 자체를 낮춤 → 세금계산서 가액↓ → 취등록세↓   (현재 BYD)
+   보조금 = 차량 가격은 그대로, 고객 납입액만 줄어듦 → 취등록세 변동 없음
+   보조금이 부활하면 '보조금으로'만 눌러 두면 된다. */
+let regionMode='discount';
+try{ regionMode=localStorage.getItem('byd_regionmode')||'discount'; }catch(e){}
+function paintRegionMode(){
+  document.querySelectorAll('.rmode').forEach(b=>b.classList.toggle('active',b.dataset.rmode===regionMode));
+}
+function setRegionMode(m){
+  regionMode=m; try{localStorage.setItem('byd_regionmode',m);}catch(e){}
+  paintRegionMode();
+  showToast(m==='discount'
+    ? '지역 금액을 차량 할인으로 넣습니다 · 취등록세도 함께 줄어듭니다'
+    : '지역 금액을 보조금으로 넣습니다 · 차량가는 그대로, 취등록세 변동 없음');
+  if($('regionSel').value) onRegionChange();
+}
+function qRegionSum(r){
+  const key=`${S.carKey}_${S.trimIdx}`;
+  const db=SUBSIDY_DB[r];
+  /* 전환지원금(v[2])은 폐차·반납 조건부라 자동으로 넣지 않는다 — 국고+지방비만 */
+  if(db){ const v=db[key]||db[`${S.carKey}_0`]; return v?((v[0]||0)+(v[1]||0)):0; }
+  const nk=(key in NAT_SUBSIDY)?key:`${S.carKey}_0`;
+  return NAT_SUBSIDY[nk]||0;
+}
+function qClearSubsidy(){
+  $('subNat').value='';$('subLoc').value='';$('subConv').value='';
+  if($('subTotal'))$('subTotal').value='';
+}
+function qSetDiscount(v){
+  const el=$('discountCost'); if(!el) return;
+  el.value = v>0 ? v.toLocaleString('ko-KR') : '';
+  if(typeof onDiscountChange==='function') onDiscountChange(); else calc();
+}
+
 function onRegionChange(){
   const r=$('regionSel').value;
   updateSubsidyLink(r);
@@ -1708,7 +1767,8 @@ function onRegionChange(){
     // 보조금 미적용은 "지역 선택" 상태로 간주 → 무공해차 링크 숨김
     const w=$('subsidyLinkWrap'); if(w) w.style.display='none';
     onSubChange();
-    showToast('보조금 미적용 — 모든 보조금 0원 설정 ✓');
+    if(regionMode==='discount') qSetDiscount(0);
+    showToast('미적용 — 할인·보조금 모두 0원으로 설정했습니다');
     return;
   }
 
@@ -1725,10 +1785,29 @@ function onRegionChange(){
 
   // PHEV: 전기차 구매보조금 대상 아님 — 자동입력 없이 비움
   if(isPHEV(S.carKey)){
-    $('subNat').value='';$('subLoc').value='';$('subConv').value='';
-    if($('subTotal'))$('subTotal').value='';
-    showToast(`${CARS[S.carKey].name}는 PHEV — 전기차 구매보조금 대상이 아닙니다`);
+    qClearSubsidy();
+    if(regionMode==='discount') qSetDiscount(0);
+    showToast(`${CARS[S.carKey].name}는 PHEV — 지역 지원 대상이 아닙니다`);
     onSubChange();
+    return;
+  }
+
+  // 보조금 미고시 트림: 자동입력 금지 — 딜러가 직접 확인 후 수기 입력
+  if(SUBSIDY_TBD.includes(`${S.carKey}_${S.trimIdx}`)){
+    qClearSubsidy();
+    if(regionMode==='discount') qSetDiscount(0);
+    showToast(`${CARS[S.carKey].trims[S.trimIdx].name} 는 지역 지원 금액이 없습니다 — 차량가 그대로 계산됩니다`);
+    onSubChange();
+    return;
+  }
+
+  /* 할인 모드: 지역 금액을 '할인' 칸으로 보내고 보조금 칸은 비운다 */
+  if(regionMode==='discount'){
+    const sum=qRegionSum(r);
+    qClearSubsidy(); onSubChange(); qSetDiscount(sum);
+    showToast(sum>0
+      ? `${REGION_LABEL[r]||r} 기준 ${won(sum)}을 차량 할인에 넣었습니다 — 다르면 수정하세요`
+      : `${REGION_LABEL[r]||r}: 참고 금액이 없습니다 — 할인을 직접 입력하세요`);
     return;
   }
 
@@ -2460,42 +2539,366 @@ function buildQuoteLines(){
   return lines;
 }
 
-async function renderToCanvas(){
-  // 폰트 로드 대기 (캔버스 텍스트 깨짐 방지)
-  await document.fonts.ready.catch(()=>{});
-  const car=CARS[S.carKey],trim=car.trims[S.trimIdx];
-  const colors=car.colorsByTrim[S.trimIdx]||car.colorsByTrim[0];
-  const color=colors[S.colorIdx]||colors[0];
-  const pr=2;
 
-  // 차량 이미지 로드
-  const carImg = await new Promise(resolve=>{
-    const src = CAR_IMGS[S.carKey];
-    if(!src){ resolve(null); return; }
-    const img = new Image();
-    img.onload = ()=>resolve(img);
-    img.onerror = ()=>resolve(null);
-    img.src = src;
+/* ══════════════════════════════════════════════════════════════════
+   견적서 도면 — 2026-09-01 개편
+   제원옵션안내 PDF와 같은 톤(네이비+골드). 계산 로직은 건드리지 않고
+   화면(견적 패널)에 이미 계산된 값을 읽어서 그린다.
+   ══════════════════════════════════════════════════════════════════ */
+const QC={navy:'#1C2532',gold:'#C8A86B',beige:'#F0EEE8',alt:'#F7F8F9',
+  line:'#DFE2E6',line2:'#ECEEF1',ink:'#1C2532',ink2:'#39404B',
+  muted:'#98A0AA',minus:'#A32833',white:'#FFFFFF'};
+const QPAD=18;
+
+function qTxt(id){const e=$(id);return e?e.textContent.trim():'';}
+function qVal(id){return parseInt((qTxt(id)||'').replace(/[^0-9-]/g,''))||0;}
+function qRegionText(){
+  const s=$('regionSel'); if(!s) return '';
+  const v=s.value; if(!v||v==='none') return '';
+  const o=[...s.options].find(x=>x.value===v);
+  return (o?o.textContent.trim():v)+' 기준';
+}
+function qDateText(){
+  const d=new Date();
+  return d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0');
+}
+function qFootNote(isFin){
+  const r=qRegionText();
+  const base=isFin?'금리 및 등록비용은 변동될 수 있습니다':'등록비용은 변동될 수 있습니다';
+  return r? r+' · '+base : base;
+}
+
+/* ── 그리기 도구 ── */
+function qKit(ctx,pr){
+  ctx.textBaseline='alphabetic';
+  const K={};
+  K.f=(sz,wt)=>{ctx.font=(wt||400)+' '+(sz*pr).toFixed(1)+"px 'Noto Sans KR',sans-serif";};
+  K.box=(x,y,w,h,c)=>{ctx.fillStyle=c;ctx.fillRect(x*pr,y*pr,w*pr,h*pr);};
+  K.frame=(x,y,w,h,c,t)=>{const q=(t||1)*pr;ctx.strokeStyle=c;ctx.lineWidth=q;
+    ctx.strokeRect(x*pr+q/2,y*pr+q/2,w*pr-q,h*pr-q);};
+  K.hr=(x1,x2,y,c,t)=>{const q=(t||1)*pr;ctx.strokeStyle=c;ctx.lineWidth=q;
+    ctx.beginPath();ctx.moveTo(x1*pr,y*pr+q/2);ctx.lineTo(x2*pr,y*pr+q/2);ctx.stroke();};
+  K.vr=(x,y1,y2,c,t)=>{const q=(t||1)*pr;ctx.strokeStyle=c;ctx.lineWidth=q;
+    ctx.beginPath();ctx.moveTo(x*pr+q/2,y1*pr);ctx.lineTo(x*pr+q/2,y2*pr);ctx.stroke();};
+  K.wid=(s,sz,wt,ls)=>{K.f(sz,wt);s=String(s);
+    if(!ls) return ctx.measureText(s).width/pr;
+    let w=0;for(const c of s)w+=ctx.measureText(c).width+ls*pr;return (w-ls*pr)/pr;};
+  K.t=(s,x,y,sz,wt,col,al,ls)=>{
+    K.f(sz,wt);ctx.fillStyle=col||QC.ink;s=String(s);
+    if(!ls){ctx.textAlign=al||'left';ctx.fillText(s,x*pr,y*pr);ctx.textAlign='left';return;}
+    const sp=ls*pr;let w=0;for(const c of s)w+=ctx.measureText(c).width+sp;w-=sp;
+    let cx=x*pr;if(al==='right')cx-=w;else if(al==='center')cx-=w/2;
+    ctx.textAlign='left';
+    for(const c of s){ctx.fillText(c,cx,y*pr);cx+=ctx.measureText(c).width+sp;}
+  };
+  return K;
+}
+
+/* ── 헤더 ── */
+function qHero(ctx,K,pr,W,carImg,badge,H){
+  H=H||172;
+  K.box(0,0,W,H,QC.navy);
+  if(carImg){
+    ctx.save();ctx.beginPath();ctx.rect(0,0,W*pr,H*pr);ctx.clip();
+    const iw=carImg.naturalWidth||carImg.width||1, ih=carImg.naturalHeight||carImg.height||1;
+    const sc=Math.max(W*pr/iw,H*pr/ih), sw=iw*sc, sh=ih*sc;
+    ctx.drawImage(carImg,(W*pr-sw)/2,(H*pr-sh)*0.58,sw,sh);
+    const g=ctx.createLinearGradient(0,0,0,H*pr);
+    g.addColorStop(0,'rgba(28,37,50,.84)');g.addColorStop(.42,'rgba(28,37,50,.34)');
+    g.addColorStop(1,'rgba(28,37,50,.93)');
+    ctx.fillStyle=g;ctx.fillRect(0,0,W*pr,H*pr);ctx.restore();
+  }
+  K.t('BYD · BUILD YOUR DREAMS',QPAD,25,6.6,700,'rgba(255,255,255,.62)','left',2.6);
+  K.t(qDateText(),W-QPAD,25,8.5,700,'rgba(255,255,255,.72)','right',.6);
+
+  const bot=H-12;
+  /* 배지 */
+  const bw=K.wid(badge,8.5,800,1.9)+22, bh=19, bx=W-QPAD-bw, by=bot-bh;
+  K.box(bx,by,bw,bh,QC.gold);
+  K.t(badge,bx+bw/2,by+13,8.5,800,QC.navy,'center',1.9);
+  /* 색상 */
+  K.t(qTxt('qCarColor')||'',QPAD,bot-5,9,400,'rgba(255,255,255,.62)');
+  /* 제원 */
+  K.t((qTxt('qCarTrim')||'').replace(/\s*\|\s*/g,' · '),QPAD,bot-24,9.5,400,'rgba(255,255,255,.85)');
+  /* 차종 */
+  K.t(qTxt('qCarNm')||'',QPAD,bot-41,25,900,'#fff');
+  K.box(0,H,W,3,QC.gold);
+  return H+3;
+}
+
+/* ── 총액 블록 ── */
+function qTotal(K,W,y,label,amount,sub){
+  const top=y+17;
+  K.t(label,QPAD,top+9,9,700,QC.muted,'left',1.6);
+  if(sub) K.t(sub,QPAD+K.wid(label,9,700,1.6)+9,top+9,8.5,400,QC.muted,'left',.4);
+  K.t(amount,QPAD,top+43,32,900,QC.navy);
+  K.t('원',QPAD+K.wid(amount,32,900)+2,top+43,13.5,800,QC.navy);
+  return top+51;
+}
+
+/* ── 통합 박스 (1행 n칸 + 2행 m칸) ── */
+function qBox(K,W,y,row1,row2){
+  const x=QPAD, w=W-QPAD*2, h1=40, h2=row2&&row2.length?42:0;
+  const H=h1+h2;
+  K.box(x,y,w,H,QC.white);
+  if(h2) K.box(x,y+h1,w,h2,QC.alt);
+  K.frame(x,y,w,H,QC.line,1);
+  const draw=(cells,ty,th,vs)=>{
+    const cw=w/cells.length;
+    cells.forEach((c,i)=>{
+      const cx=x+cw*i;
+      if(i) K.vr(cx,ty,ty+th,QC.line2,1);
+      K.t(c.l,cx+10,ty+16,8,600,QC.muted);
+      K.t(c.v,cx+10,ty+32,vs,800,c.c||QC.ink);
+    });
+  };
+  draw(row1,y,h1,12.5);
+  if(h2){ K.hr(x,x+w,y+h1,QC.line2,1); draw(row2,y+h1,h2,13.5); }
+  return y+H;
+}
+
+/* ── 섹션 제목 ── */
+function qSecHead(K,W,y,title,right){
+  K.box(QPAD,y+6,3,10,QC.gold);
+  K.t(title,QPAD+9,y+16,9.5,800,QC.navy,'left',1.4);
+  if(right) K.t(right,W-QPAD,y+16,8.5,400,QC.muted,'right');
+  K.hr(QPAD,W-QPAD,y+24,QC.navy,1.5);
+  return y+24;
+}
+
+/* ── 표 (라벨 / 금액) ── */
+function qTable(K,W,y,rows){
+  const x=QPAD,w=W-QPAD*2;
+  rows.forEach(r=>{
+    const h=r.h||22, sz=r.sz||9.5, ty=y+h/2+sz*0.36;
+    if(r.alt) K.box(x,y,w,h,QC.alt);
+    const col=r.sub?QC.navy:(r.dim?QC.muted:QC.ink2);
+    K.t(r.l,x+2,ty,sz,r.sub?800:400,col);
+    K.t(r.v,x+w-2,ty,sz,r.sub?800:600,r.minus?QC.minus:(r.sub?QC.navy:(r.dim?QC.muted:QC.ink)),'right');
+    K.hr(x,x+w,y+h,r.sub?QC.navy:QC.line2,r.sub?1.5:1);
+    y+=h;
+  });
+  return y;
+}
+
+/* ── 절감 효과 ── */
+function qSave(K,W,y){
+  const x=QPAD,w=W-QPAD*2,h=74;
+  K.box(x,y,w,h,QC.beige); K.box(x,y,3,h,QC.gold);
+  K.t('가솔린 대비 전기차 절감 효과 · 연 20,000km 기준',x+13,y+17,8.5,800,'#B99A63','left',.9);
+  const items=[['연간',CONFIG.SAVE_YEAR],['5년',CONFIG.SAVE_5Y],['10년',CONFIG.SAVE_10Y]];
+  const cw=(w-26)/3;
+  items.forEach((it,i)=>{
+    const cx=x+13+cw*i;
+    K.t(it[0],cx,y+35,8,600,QC.muted);
+    K.t(it[1],cx,y+51,16,900,QC.navy);
+  });
+  K.t((CONFIG.SAVE_NOTE||'').replace(/^기준:\s*/,''),x+13,y+66,7.5,400,QC.muted);
+  return y+h;
+}
+
+/* ── 푸터 ── */
+function qFoot(K,W,y,isFin){
+  K.hr(QPAD,W-QPAD,y,QC.line,1);
+  K.t('유용현 과장 · 010-9073-7962',QPAD,y+17,9.5,800,QC.navy);
+  K.t('BYD 김포 전시장 · 경기 김포시 풍무로 61',QPAD,y+30,8.5,400,QC.muted);
+  K.t('본 견적은 참고용이며',W-QPAD,y+17,7.5,400,QC.muted,'right');
+  K.t(qFootNote(isFin),W-QPAD,y+29,7.5,400,QC.muted,'right');
+  return y+44;
+}
+
+/* ── 세부 내역 행 만들기 ── */
+function qDetailRows(){
+  const rows=[], disc=pF('discountCost'), subT=qVal('qSubTotal');
+  rows.push({l:'차량가 (VAT 포함)',v:qTxt('qCarPrice')});
+  if(disc>0)  rows.push({l:'차량 할인',v:qTxt('qDiscount'),minus:true,alt:true});
+  if(subT>0)  rows.push({l:'보조금 차감',v:qTxt('qSubTotal'),minus:true,alt:true});
+  rows.push({l:'① 실 차량 구매가',v:qTxt('qNetCar'),sub:true});
+  if(isPHEV(S.carKey)){
+    rows.push({l:'취등록세 (VAT 제외가 × 7%)',v:qTxt('qAcqAfter')});
+    rows.push({l:'공채 (1,600cc 이하 면제)',v:qTxt('qBond'),dim:true,alt:true});
+  }else{
+    rows.push({l:'취등록세 (감면 전)',v:qTxt('qAcqBefore'),dim:true});
+    rows.push({l:'전기차 감면',v:qTxt('qAcqReduce'),minus:true,alt:true});
+    rows.push({l:'공채',v:qTxt('qBond'),dim:true});
+  }
+  rows.push({l:'② 등록비용',v:qTxt('qRegTotal'),sub:true});
+  const etc=pF('etcCost');
+  rows.push({l:'등록 부대비용',v:qTxt('qPlate'),dim:true});
+  rows.push({l:'탁송료',v:qTxt('qDelivery'),dim:true,alt:true});
+  if(etc>0) rows.push({l:'기타',v:qTxt('qEtc'),dim:true});
+  rows.push({l:'③ 부대비용',v:qTxt('qMiscTotal'),sub:true});
+  return rows;
+}
+
+/* ══════════ 현금 견적서 ══════════ */
+function qDrawCash(ctx,W,pr,carImg){
+  const K=qKit(ctx,pr);
+  K.box(0,0,W,20000,QC.white);
+  let y=qHero(ctx,K,pr,W,carImg,'현 금 견 적 서');
+  y=qTotal(K,W,y,'총 구 매 금 액',qTxt('qGrandTotal'),'① + ② + ③');
+  const dep=pF('cashDeposit'), grand=qVal('qGrandTotal');
+  y=qBox(K,W,y+13,
+    [{l:'① 실 차량 구매가',v:qTxt('qNetCar').replace('원','')},
+     {l:'② 등록비용',v:qTxt('qRegTotal').replace('원','')},
+     {l:'③ 부대비용',v:qTxt('qMiscTotal').replace('원','')}],
+    [{l:'계약금',v:won(dep)},{l:'출고 시 잔금',v:won(Math.max(0,grand-dep))}]);
+  y=qSecHead(K,W,y+15,'세 부 내 역');
+  y=qTable(K,W,y,qDetailRows());
+  y=qSave(K,W,y+15);
+  y=qFoot(K,W,y+16,false);
+  return (y+12)*pr;
+}
+
+/* ── 초기 납부 금액이 어떻게 나오는지 ── */
+function qInitBox(K,W,y,g){
+  const x=QPAD,w=W-QPAD*2,h=46,cw=w/4;
+  K.box(x,y,2.5,9,QC.gold);
+  K.t('초기 납부 금액 구성',x+8,y+8,8,700,QC.muted,'left',1.1);
+  K.t('계약금 + ① + ② + ③',x+w,y+8,7.5,400,QC.muted,'right');
+  y+=15;
+  K.box(x,y,w,h,QC.alt); K.frame(x,y,w,h,QC.line,1);
+  const cells=[
+    {l:'계약금',v:won(g.dep)},
+    {l:'① 선수금',v:g.actualDown>0?won(g.actualDown):'없음'},
+    {l:'② 등록비용',v:qTxt('qRegTotal')},
+    {l:'③ 부대비용',v:qTxt('qMiscTotal')}
+  ];
+  cells.forEach((c,i)=>{
+    const cx=x+cw*i;
+    if(i) K.vr(cx,y,y+h,QC.line,1);
+    K.t(c.l,cx+9,y+17,7.5,600,QC.muted);
+    K.t(c.v,cx+9,y+34,11.5,800,QC.navy);
+  });
+  return y+h;
+}
+
+/* ══════════ 할부 견적서 ══════════ */
+function qDrawInst(ctx,W,pr,carImg){
+  const K=qKit(ctx,pr);
+  K.box(0,0,W,20000,QC.white);
+  let y=qHero(ctx,K,pr,W,carImg,'할 부 견 적 서');
+
+  const g=getInstCalcValues();
+  const months=Math.min(60,Math.max(1,parseInt($('instMonthDirect')?.value)||36));
+  const rate=g.rate, init=Math.round(g.dep+g.regMisc+g.actualDown);
+
+  /* 두 카드 */
+  const top=y+15, ch=58, cw=(W-QPAD*2-9)/2;
+  K.box(QPAD,top,cw,ch,QC.navy);
+  K.t('월 납입금',QPAD+12,top+18,8,700,'rgba(255,255,255,.62)','left',1);
+  const amt=qTxt('qMonthlyAmt');
+  K.t(amt,QPAD+12,top+39,19.5,900,QC.gold);
+  K.t('원',QPAD+12+K.wid(amt,19.5,900)+2,top+39,9.5,800,QC.gold);
+  K.t(months+'개월 · '+(rate===0?'무이자':rate+'%')+' · 원리금균등',QPAD+12,top+51,7.5,400,'rgba(255,255,255,.55)');
+
+  const rx=QPAD+cw+9;
+  K.box(rx,top,cw,ch,QC.white); K.frame(rx,top,cw,ch,QC.line,1);
+  K.t('초기 납부 금액',rx+12,top+18,8,700,QC.muted,'left',1);
+  const iv=won(init).replace('원','');
+  K.t(iv,rx+12,top+39,19.5,900,QC.navy);
+  K.t('원',rx+12+K.wid(iv,19.5,900)+2,top+39,9.5,800,QC.navy);
+  K.t('계약금 + 선수금 + 등록·부대비용',rx+12,top+51,7.5,400,QC.muted);
+  y=qInitBox(K,W,top+ch+9,g);
+
+  /* 할부 조건 */
+  y=qSecHead(K,W,y+15,'할 부 조 건');
+  const cond=[
+    {l:'기간 · 금리',v:months+'개월 · '+(rate===0?'무이자 (0%)':rate+'%')}
+  ];
+  if(rate>0) cond.push({l:'총 이자',v:won(Math.round(pmt(g.principal,rate,months)*months-g.principal))});
+  cond.push({l:'할부원금',v:won(Math.round(g.principal)),sub:true});
+  y=qTable(K,W,y,cond);
+
+  /* 세부 내역 — 현금 견적서와 같은 항목 구성 */
+  y=qSecHead(K,W,y+15,'세 부 내 역');
+  const det=qDetailRows();
+  det.push({l:'총 구매 금액',v:qTxt('qGrandTotal')+'원',sub:true,sz:11,h:27});
+  y=qTable(K,W,y,det);
+
+  y=qSave(K,W,y+15);
+  y=qFoot(K,W,y+16,true);
+  return (y+12)*pr;
+}
+
+/* ══════════ 할부 비교 견적서 ══════════ */
+function qDrawCmp(ctx,W,pr,carImg,months){
+  const K=qKit(ctx,pr);
+  K.box(0,0,W,20000,QC.white);
+  let y=qHero(ctx,K,pr,W,carImg,'할 부 비 교 견 적 서',186);
+
+  const g=getInstCalcValues();
+  const rate=g.rate, init=Math.round(g.dep+g.regMisc+g.actualDown);
+  y=qSecHead(K,W,y+14,'개 월 별 비 교',
+    '할부원금 '+won(Math.round(g.principal))+' · '+(rate===0?'무이자':rate+'%'));
+
+  const x=QPAD, w=W-QPAD*2, c0=Math.round(w*0.24), cw=(w-c0)/months.length;
+  const colX=i=>x+c0+cw*i;
+
+  /* 헤더 */
+  let hh=26; K.box(x,y,w,hh,QC.navy);
+  K.t('구분',x+10,y+17,9,600,'rgba(255,255,255,.6)');
+  months.forEach((m,i)=>K.t(m+'개월',colX(i)+cw/2,y+17,9.5,800,'#fff','center'));
+  y+=hh;
+
+  /* 월 납입금 */
+  const ph=44; K.box(x,y,w,ph,QC.navy);
+  K.t('월 납입금',x+10,y+27,9.5,700,'rgba(255,255,255,.72)','left',.6);
+  months.forEach((m,i)=>{
+    const v=won(Math.round(pmt(g.principal,rate,m))).replace('원','');
+    const cx=colX(i)+cw/2, tw=K.wid(v,19,900)+K.wid('원',10,800)+2;
+    K.t(v,cx-tw/2,y+28,19,900,QC.gold,'left');
+    K.t('원',cx-tw/2+K.wid(v,19,900)+2,y+28,10,800,QC.gold,'left');
+  });
+  y+=ph;
+
+  /* 나머지 행 */
+  const rows=[
+    {l:'초기 납부 금액',vs:months.map(()=>won(init)),strong:true},
+    {l:'선수금',vs:months.map(()=>g.actualDown>0?won(g.actualDown):'없음')},
+    {l:'금리',vs:months.map(()=>rate===0?'무이자':rate+'%'),alt:true},
+    {l:'할부원금',vs:months.map(()=>won(Math.round(g.principal)))}
+  ];
+  rows.forEach(r=>{
+    const h=r.strong?30:24;
+    if(r.alt) K.box(x,y,w,h,QC.alt);
+    K.t(r.l,x+10,y+h/2+3.5,r.strong?9:9,r.strong?800:600,r.strong?QC.navy:QC.muted);
+    r.vs.forEach((v,i)=>K.t(v,colX(i)+cw/2,y+h/2+(r.strong?4.5:3.5),r.strong?12:10,r.strong?800:400,r.strong?QC.navy:QC.ink2,'center'));
+    K.hr(x,x+w,y+h,r.strong?QC.navy:QC.line2,r.strong?1.5:1);
+    y+=h;
   });
 
-  // 현금: 단일 컬럼 (480px)
-  // 할부: 2컬럼 A4 비율 (900px)
-  const isFinance = S.payMode!=='cash';
-  const W = isFinance ? 900*pr : 480*pr;
+  /* 초기 납부 금액 구성 — 개월과 무관하게 동일 */
+  y=qInitBox(K,W,y+11,g);
 
-  const tmp=document.createElement('canvas');tmp.width=W;tmp.height=8000*pr;
-  const tc=tmp.getContext('2d');
-  const h = isFinance
-    ? drawCanvasTwoCol(tc,W,pr,car,trim,color,carImg)
-    : drawCanvas(tc,W,pr,car,trim,color,buildQuoteLines(),carImg);
+  /* 세부 내역 — 현금 견적서와 같은 항목 구성 */
+  y=qSecHead(K,W,y+15,'세 부 내 역');
+  const det=qDetailRows();
+  det.push({l:'총 구매 금액',v:qTxt('qGrandTotal')+'원',sub:true,sz:11,h:27});
+  y=qTable(K,W,y,det);
 
-  const canvas=document.createElement('canvas');
-  canvas.width=W; canvas.height=Math.ceil(h)+30*pr;
-  const ctx=canvas.getContext('2d');
-  isFinance
-    ? drawCanvasTwoCol(ctx,W,pr,car,trim,color,carImg)
-    : drawCanvas(ctx,W,pr,car,trim,color,buildQuoteLines(),carImg);
-  return canvas;
+  y=qSave(K,W,y+15);
+  y=qFoot(K,W,y+16,true);
+  return (y+12)*pr;
+}
+
+function qLoadCarImg(){
+  return new Promise(res=>{
+    const src=CAR_IMGS[S.carKey];
+    if(!src){res(null);return;}
+    const im=new Image(); im.onload=()=>res(im); im.onerror=()=>res(null); im.src=src;
+  });
+}
+async function renderToCanvas(){
+  await document.fonts.ready.catch(()=>{});
+  const carImg=await qLoadCarImg();
+  const pr=2, Wc=480, W=Wc*pr;
+  const draw = (S.payMode!=='cash') ? qDrawInst : qDrawCash;
+  const tmp=document.createElement('canvas'); tmp.width=W; tmp.height=9000*pr;
+  const h=draw(tmp.getContext('2d'),Wc,pr,carImg);
+  const cv=document.createElement('canvas'); cv.width=W; cv.height=Math.ceil(h);
+  draw(cv.getContext('2d'),Wc,pr,carImg);
+  return cv;
 }
 
 // ── 2컬럼 렌더러 (할부) ────────────────────────────────────
@@ -3440,50 +3843,47 @@ async function openQuoteWindow(){
 }
 
 async function renderCompareCanvas(months){
-  const car=CARS[S.carKey],trim=car.trims[S.trimIdx];
-  const colors=car.colorsByTrim[S.trimIdx]||car.colorsByTrim[0];
-  const color=colors[S.colorIdx]||colors[0];
-  const pr=2;
-
-  const carImg=await new Promise(resolve=>{
-    const src=CAR_IMGS[S.carKey];
-    if(!src){resolve(null);return;}
-    const img=new Image();
-    img.onload=()=>resolve(img);
-    img.onerror=()=>resolve(null);
-    img.src=src;
-  });
-
-  // 공통 함수로 계산값 가져오기 (calc/drawCanvasTwoCol 과 동일 로직 보장)
-  const {dep, actualDown:down, netCar:_netCar, regMisc:_regMisc2, principal, rate, acqV:_acqV} = getInstCalcValues();
-  const lines = buildQuoteLines();
-  const colN  = months.length;
-  const W     = (colN===2?720:colN===3?980:720)*pr;
-
-  const tmp=document.createElement('canvas');tmp.width=W;tmp.height=10000*pr;
-  const tc=tmp.getContext('2d');
-  // _acqV는 getInstCalcValues()에서 이미 받음
-  const _bV=bondMode==='auto'?calcBondAuto():bondMode==='manual'?pF('bondCost'):0;
-  const _plate=pF('plateCost');
-  const _delivery=pF('deliveryCost');
-  const _etc=pF('etcCost');
-  const _regM=Math.round(_acqV+_bV+_plate+_delivery+_etc);
-  const _subT=(pF('subTotal')||0)*10000||(((pF('subNat')||0)+(pF('subLoc')||0))*10000);
-  const _acqBefore=Math.round(pF('carPrice')/1.1*0.07);
-  const _acqReduce=1400000;
-  const h=drawCompareCanvas(tc,W,pr,car,trim,color,carImg,months,rate,principal,dep,down,lines,_acqV,_regM,_subT,_plate,_delivery,_etc,_acqBefore,_acqReduce,subChecks);
-
-  const canvas=document.createElement('canvas');
-  canvas.width=W;canvas.height=Math.ceil(h)+30*pr;
-  const ctx=canvas.getContext('2d');
-  drawCompareCanvas(ctx,W,pr,car,trim,color,carImg,months,rate,principal,dep,down,lines,_acqV,_regM,_subT,_plate,_delivery,_etc,_acqBefore,_acqReduce,subChecks);
-  return canvas;
+  await document.fonts.ready.catch(()=>{});
+  const carImg=await qLoadCarImg();
+  const pr=2, Wc=(months.length>=3?620:520), W=Wc*pr;
+  const tmp=document.createElement('canvas'); tmp.width=W; tmp.height=9000*pr;
+  const h=qDrawCmp(tmp.getContext('2d'),Wc,pr,carImg,months);
+  const cv=document.createElement('canvas'); cv.width=W; cv.height=Math.ceil(h);
+  qDrawCmp(cv.getContext('2d'),Wc,pr,carImg,months);
+  return cv;
 }
 function ivClose(){$('iv').classList.remove('show');}
+function qDataURLtoBlob(dataURL){
+  const arr=dataURL.split(','), mime=arr[0].match(/:(.*?);/)[1], b=atob(arr[1]);
+  const u=new Uint8Array(b.length); for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);
+  return new Blob([u],{type:mime});
+}
+/* 아이폰·아이패드 사파리는 <a download> 을 지원하지 않는다 → 공유 시트로 보낸다 */
+function qIsMobile(){
+  const ua=navigator.userAgent||'';
+  return /iPhone|iPad|iPod|Android/i.test(ua)
+      || ((navigator.maxTouchPoints||0)>1 && /Mac/i.test(navigator.platform||''));
+}
 function ivSave(){
-  const a=document.createElement('a');a.href=ivDataURL;a.download=ivFname+'.png';
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
-  showToast('저장 완료 ✅');
+  if(!ivDataURL){showToast('견적서를 먼저 만들어 주세요');return;}
+  let file=null;
+  try{ file=new File([qDataURLtoBlob(ivDataURL)],ivFname+'.png',{type:'image/png'}); }catch(e){}
+  if(qIsMobile() && file && navigator.canShare && navigator.share){
+    let ok=false; try{ ok=navigator.canShare({files:[file]}); }catch(e){}
+    if(ok){
+      navigator.share({files:[file],title:ivFname})
+        .then(()=>showToast('저장하시려면 "이미지 저장"을 누르세요'))
+        .catch(()=>{});
+      return;
+    }
+  }
+  try{
+    const a=document.createElement('a');a.href=ivDataURL;a.download=ivFname+'.png';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    showToast('저장 완료 ✅');
+  }catch(e){
+    window.open(ivDataURL,'_blank'); showToast('이미지를 길게 눌러 저장하세요');
+  }
 }
 
 async function ivShare(){
@@ -3671,7 +4071,7 @@ function resetAll(){
 }
 
 // 페이지 로드 시 실행
-window.addEventListener('load', init);
+window.addEventListener('load', ()=>{ init(); try{ paintRegionMode(); }catch(e){} });
 
 </script>
 
