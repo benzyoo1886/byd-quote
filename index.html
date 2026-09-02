@@ -3987,9 +3987,12 @@ function ivPrint(){
   const iw = imgEl.naturalWidth  || 800;
   const ih = imgEl.naturalHeight || 1100;
   const orientation = ih >= iw ? 'portrait' : 'landscape';
-  // A4 사용 가능 영역 (mm) - 페이지 여백 5mm씩 차감
-  const pageW = orientation==='portrait' ? 200 : 287;
-  const pageH = orientation==='portrait' ? 287 : 200;
+  /* A4 210 x 297mm.
+     브라우저가 스스로 그리는 머리글·바닥글과 프린터 여백까지 감안해
+     '무조건 1페이지'가 되도록 보수적으로 잡는다. 여기서 1mm라도 넘치면
+     내용 없는 빈 2페이지가 생긴다. */
+  const pageW = orientation==='portrait' ? 180 : 262;
+  const pageH = orientation==='portrait' ? 255 : 172;
 
   win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${ivFname}</title>
 <style>
@@ -3998,10 +4001,14 @@ html,body{background:#fff;width:100%;height:100%;}
 body{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:8px;}
 img{display:block;max-width:96vw;max-height:96vh;width:auto;height:auto;}
 @media print{
-  @page{size:A4 ${orientation};margin:5mm;}
-  html,body{height:auto;background:#fff;}
-  body{display:block;min-height:auto;padding:0;}
-  img{display:block;max-width:${pageW}mm;max-height:${pageH}mm;width:auto;height:auto;margin:0 auto;page-break-inside:avoid;}
+  /* margin:0 → 크롬·엣지는 머리글/바닥글을 아예 그리지 않는다 */
+  @page{size:A4 ${orientation};margin:0;}
+  html{height:auto;background:#fff;}
+  body{display:block;height:auto;min-height:0;padding:0;text-align:center;background:#fff;}
+  img{display:inline-block;max-width:${pageW}mm;max-height:${pageH}mm;
+      width:auto;height:auto;margin:22mm auto 0;
+      page-break-inside:avoid;page-break-after:avoid;break-inside:avoid;break-after:avoid;
+      -webkit-print-color-adjust:exact;print-color-adjust:exact;}
 }
 </style></head><body>
 <img src="${ivDataURL}">
