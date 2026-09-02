@@ -705,6 +705,15 @@ input:-webkit-autofill{ -webkit-box-shadow:0 0 0 1000px var(--s2) inset; -webkit
 <div class="main">
 <div class="left">
 
+<!-- 0. 고객명 (선택) -->
+<div class="card">
+  <div class="card-body" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-top:14px;padding-bottom:14px;">
+    <span style="font-size:11px;color:var(--dim);font-weight:700;white-space:nowrap;">고객명 <span class="tag">선택</span></span>
+    <input class="fi" id="qCustName" type="text" maxlength="14" autocomplete="off"
+           placeholder="비워두면 견적서에 표시되지 않습니다" style="flex:1;min-width:150px;">
+  </div>
+</div>
+
 <!-- 1. 차종 -->
 <div class="card">
   <div class="car-hero" id="carHero">
@@ -2485,7 +2494,12 @@ function getFileName(){
   const car=S.carKey?CARS[S.carKey]:null,trim=car?car.trims[S.trimIdx]:null;
   const now=new Date();
   const d=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
-  return car?`BYD_${trim.name.replace(/\s/g,'_')}_${d}`:`BYD_견적서_${d}`;
+  /* 고객명 — 입력했을 때만 붙인다. 파일명에 못 쓰는 문자는 제거 */
+  const e=document.getElementById('qCustName');
+  let nm=e?String(e.value||'').trim():'';
+  nm=nm.replace(/[\\/:*?"<>|.]/g,'').replace(/\s+/g,'').slice(0,14);
+  const cn=nm?`_${nm}`:'';
+  return car?`BYD_${trim.name.replace(/\s/g,'_')}${cn}_${d}`:`BYD_견적서${cn}_${d}`;
 }
 
 function buildQuoteLines(){
@@ -2562,6 +2576,11 @@ function qDateText(){
   const d=new Date();
   return d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0');
 }
+function qCustNameText(){
+  const e=document.getElementById('qCustName');
+  const v=e?String(e.value||'').trim():'';
+  return v? v+' 고객님 귀하' : '';
+}
 function qFootNote(isFin){
   const r=qRegionText();
   const base=isFin?'금리 및 등록비용은 변동될 수 있습니다':'등록비용은 변동될 수 있습니다';
@@ -2610,6 +2629,8 @@ function qHero(ctx,K,pr,W,carImg,badge,H){
   }
   K.t('BYD · BUILD YOUR DREAMS',QPAD,25,6.6,700,'rgba(255,255,255,.62)','left',2.6);
   K.t(qDateText(),W-QPAD,25,8.5,700,'rgba(255,255,255,.72)','right',.6);
+  const _cn=qCustNameText();
+  if(_cn) K.t(_cn,W-QPAD,39,9.5,800,QC.gold,'right',.2);
 
   const bot=H-12;
   /* 배지 */
@@ -2631,9 +2652,9 @@ function qTotal(K,W,y,label,amount,sub){
   const top=y+17;
   K.t(label,QPAD,top+9,9,700,QC.muted,'left',1.6);
   if(sub) K.t(sub,QPAD+K.wid(label,9,700,1.6)+9,top+9,8.5,400,QC.muted,'left',.4);
-  K.t(amount,QPAD,top+43,32,900,QC.navy);
-  K.t('원',QPAD+K.wid(amount,32,900)+2,top+43,13.5,800,QC.navy);
-  return top+51;
+  K.t(amount,QPAD,top+39,27,900,QC.navy);
+  K.t('원',QPAD+K.wid(amount,27,900)+2,top+39,11.5,800,QC.navy);
+  return top+46;
 }
 
 /* ── 통합 박스 (1행 n칸 + 2행 m칸) ── */
@@ -2702,7 +2723,7 @@ function qFoot(K,W,y,isFin){
   K.hr(QPAD,W-QPAD,y,QC.line,1);
   K.t('유용현 과장 · 010-9073-7962',QPAD,y+17,9.5,800,QC.navy);
   K.t('BYD 김포 전시장 · 경기 김포시 풍무로 61',QPAD,y+30,8.5,400,QC.muted);
-  K.t('본 견적은 참고용이며',W-QPAD,y+17,7.5,400,QC.muted,'right');
+  K.t('본 견적은 작성일 기준이며 변동시 조정될 수 있습니다',W-QPAD,y+17,7.5,400,QC.muted,'right');
   K.t(qFootNote(isFin),W-QPAD,y+29,7.5,400,QC.muted,'right');
   return y+44;
 }
@@ -2806,7 +2827,6 @@ function qDrawInst(ctx,W,pr,carImg){
   const cond=[
     {l:'기간 · 금리',v:months+'개월 · '+(rate===0?'무이자 (0%)':rate+'%')}
   ];
-  if(rate>0) cond.push({l:'총 이자',v:won(Math.round(pmt(g.principal,rate,months)*months-g.principal))});
   cond.push({l:'할부원금',v:won(Math.round(g.principal)),sub:true});
   y=qTable(K,W,y,cond);
 
@@ -4022,7 +4042,7 @@ function resetAll(){
   S={carKey:null,trimIdx:0,colorIdx:0,seatIdx:0,payMode:'cash'};
   subChecks={child2:false,child3:false,first:false,conv:false};bondMode='exempt';acqManual=false;
   // 텍스트 인풋 초기화 (instMonthDirect는 hidden, 직접 처리)
-  ['acqTaxInput','bondCost','etcCost','discountCost','instRateDirect','instPrincipalDirect','instDownDirect'].forEach(id=>{const e=$(id);if(e)e.value='';});
+  ['qCustName','acqTaxInput','bondCost','etcCost','discountCost','instRateDirect','instPrincipalDirect','instDownDirect'].forEach(id=>{const e=$(id);if(e)e.value='';});
   if($('instMonthDirect')) $('instMonthDirect').value='36';
   // 개월수 체크박스 → 36개월 기본 복원
   [12,24,36,48,60].forEach(m=>{ const c=$('cmp'+m); if(c) c.checked=(m===36); });
