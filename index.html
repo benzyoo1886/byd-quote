@@ -992,7 +992,7 @@ input:-webkit-autofill{ -webkit-box-shadow:0 0 0 1000px var(--s2) inset; -webkit
         <!-- 선수금 셀렉트 + 직접입력 -->
         <div class="fg full">
           <div class="fl" style="align-items:flex-start;flex-direction:column;gap:6px;">
-            <span>선수금</span>
+            <span>선수금 <span class="tag tag-g" id="downPctBadge">0%</span></span>
             <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
               <span style="font-size:9px;color:var(--dim);">등록비용·부대비용:</span>
               <button id="regIncBtn" onclick="setRegInc(true)"
@@ -2410,6 +2410,13 @@ function calc(){
     const ncd=$('instNetCarDisp');
     if(ncd) ncd.textContent = netCar2>0 ? won(Math.round(netCar2)) : '–';
 
+    // 선수금 비율 배지 — 순차량가 대비 (셀렉트에서 고른 %와 같은 기준)
+    const pctBadge=$('downPctBadge');
+    if(pctBadge){
+      const pv = (netCar2>0 && down>0) ? (down/netCar2*100) : 0;
+      pctBadge.textContent = (Math.round(pv*10)/10).toFixed(1).replace(/\.0$/,'') + '%';
+    }
+
     // ── 할부원금 = 순차량가 − 순수선수금 (선수금 0이면 − 계약금) ──
     const principalDirect = pF('instPrincipalDirect');
     // 직접입력값이 현재 순차량가보다 크면 무효 (보조금 변경 후 낡은 값)
@@ -2771,8 +2778,16 @@ function qDrawCash(ctx,W,pr,carImg){
   return (y+12)*pr;
 }
 
+/* 순차량가 대비 선수금 비율 — 소수 첫째자리, 딱 떨어지면 정수 */
+function qPct(amt,base){
+  if(!(base>0)||!(amt>0)) return '0%';
+  return (Math.round(amt/base*1000)/10).toFixed(1).replace(/\.0$/,'')+'%';
+}
+
 /* ── 초기 납부 금액이 어떻게 나오는지 ── */
 function qInitBox(K,W,y,g){
+  const hasDown=g.actualDown>0;
+  const downRest=Math.max(0,g.actualDown-g.dep);   // 계약금 뺀 선수금 잔액
   const x=QPAD,w=W-QPAD*2,h=46,cw=w/4;
   K.box(x,y,2.5,9,QC.gold);
   K.t('초기 납부 금액 구성',x+8,y+8,8,700,QC.muted,'left',1.1);
@@ -2780,8 +2795,8 @@ function qInitBox(K,W,y,g){
   y+=15;
   K.box(x,y,w,h,QC.alt); K.frame(x,y,w,h,QC.line,1);
   const cells=[
-    {l:'계약금',v:won(g.dep)},
-    {l:'① 선수금',v:g.actualDown>0?won(g.actualDown):'없음'},
+    {l:'계약금 (계약 시)',v:won(g.dep)},
+    {l:hasDown?'① 선수금 잔액':'① 선수금',v:hasDown?won(downRest):'없음'},
     {l:'② 등록비용',v:qTxt('qRegTotal')},
     {l:'③ 부대비용',v:qTxt('qMiscTotal')}
   ];
@@ -2802,7 +2817,7 @@ function qDrawInst(ctx,W,pr,carImg){
 
   const g=getInstCalcValues();
   const months=Math.min(60,Math.max(1,parseInt($('instMonthDirect')?.value)||36));
-  const rate=g.rate, init=Math.round(g.dep+g.regMisc+g.actualDown);
+  const rate=g.rate, init=Math.round((g.actualDown>0?g.actualDown:g.dep)+g.regMisc);
 
   /* 두 카드 */
   const top=y+15, ch=58, cw=(W-QPAD*2-9)/2;
@@ -2827,6 +2842,7 @@ function qDrawInst(ctx,W,pr,carImg){
   const cond=[
     {l:'기간 · 금리',v:months+'개월 · '+(rate===0?'무이자 (0%)':rate+'%')}
   ];
+  if(g.actualDown>0) cond.push({l:'선수금',v:won(g.actualDown)+'  ('+qPct(g.actualDown,g.netCar)+')'});
   cond.push({l:'할부원금',v:won(Math.round(g.principal)),sub:true});
   y=qTable(K,W,y,cond);
 
@@ -2848,7 +2864,7 @@ function qDrawCmp(ctx,W,pr,carImg,months){
   let y=qHero(ctx,K,pr,W,carImg,'할 부 비 교 견 적 서',186);
 
   const g=getInstCalcValues();
-  const rate=g.rate, init=Math.round(g.dep+g.regMisc+g.actualDown);
+  const rate=g.rate, init=Math.round((g.actualDown>0?g.actualDown:g.dep)+g.regMisc);
   y=qSecHead(K,W,y+14,'개 월 별 비 교',
     '할부원금 '+won(Math.round(g.principal))+' · '+(rate===0?'무이자':rate+'%'));
 
@@ -2875,7 +2891,7 @@ function qDrawCmp(ctx,W,pr,carImg,months){
   /* 나머지 행 */
   const rows=[
     {l:'초기 납부 금액',vs:months.map(()=>won(init)),strong:true},
-    {l:'선수금',vs:months.map(()=>g.actualDown>0?won(g.actualDown):'없음')},
+    {l:g.actualDown>0?'선수금 (계약금 포함)':'선수금',vs:months.map(()=>g.actualDown>0?won(g.actualDown)+'  ('+qPct(g.actualDown,g.netCar)+')':'없음')},
     {l:'금리',vs:months.map(()=>rate===0?'무이자':rate+'%'),alt:true},
     {l:'할부원금',vs:months.map(()=>won(Math.round(g.principal)))}
   ];
