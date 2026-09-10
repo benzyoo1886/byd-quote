@@ -490,7 +490,7 @@ input[type=range]::-webkit-slider-thumb{
   padding:16px;flex-direction:column;align-items:center;gap:12px;
 }
 .iv.show{display:flex;}
-.iv-toolbar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;width:100%;max-width:480px;}
+.iv-toolbar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;width:100%;max-width:480px;position:sticky;top:-16px;z-index:3;background:rgba(0,0,0,0.95);padding:8px 0;}
 .iv-toolbar .btn-main,.iv-toolbar .btn-sub{flex:1;}
 .iv img{max-width:480px;width:100%;border-radius:10px;}
 
@@ -2834,7 +2834,7 @@ function qDrawInst(ctx,W,pr,carImg){
   const iv=won(init).replace('원','');
   K.t(iv,rx+12,top+39,19.5,900,QC.navy);
   K.t('원',rx+12+K.wid(iv,19.5,900)+2,top+39,9.5,800,QC.navy);
-  K.t('계약금 + 선수금 + 등록·부대비용',rx+12,top+51,7.5,400,QC.muted);
+  K.t(g.actualDown>0?'선수금(계약금 포함) + 등록·부대비용':'계약금 + 등록·부대비용',rx+12,top+51,7.5,400,QC.muted);
   y=qInitBox(K,W,top+ch+9,g);
 
   /* 할부 조건 */
@@ -3995,8 +3995,13 @@ function showShareModal(){
 }
 
 function ivPrint(){
-  const win=window.open('','_blank');
-  if(!win){showToast('팝업 차단됨 — 팝업 허용 후 재시도');return;}
+  if(!ivDataURL){showToast('견적서를 먼저 만들어 주세요');return;}
+
+  /* 아이폰·아이패드: 사파리 인쇄 화면은 미리보기로 들어가면 닫는 버튼이 사라져
+     빠져나오지 못하고, 긴 견적서가 두 장으로 잘린다.
+     공유 시트로 보내면 거기서 '프린트'를 고를 수 있고 취소도 분명하다.
+     PNG 한 장을 인쇄하는 것이라 페이지도 항상 한 장이다. */
+  if(qIsMobile() && navigator.share){ ivShare(); return; }
 
   // 이미지 비율로 A4 페이지 방향 자동 결정
   const imgEl = $('ivImg');
@@ -4004,33 +4009,53 @@ function ivPrint(){
   const ih = imgEl.naturalHeight || 1100;
   const orientation = ih >= iw ? 'portrait' : 'landscape';
   /* A4 210 x 297mm.
-     브라우저가 스스로 그리는 머리글·바닥글과 프린터 여백까지 감안해
-     '무조건 1페이지'가 되도록 보수적으로 잡는다. 여기서 1mm라도 넘치면
-     내용 없는 빈 2페이지가 생긴다. */
-  const pageW = orientation==='portrait' ? 180 : 262;
-  const pageH = orientation==='portrait' ? 255 : 172;
+     아이폰·아이패드 사파리는 @page{margin:0} 을 무시하고 머리글·바닥글(URL·날짜)을
+     제 마음대로 넣는다. max-width/max-height 를 같이 걸면 mm 단위 높이 제한을
+     무시해 세로로 넘쳐 2페이지가 된다.
+     그래서 이미지 비율로 가로 폭을 mm 로 직접 계산해 한 값만 준다.
+     세로 예산은 사파리가 넣는 머리글·바닥글까지 빼고 보수적으로 잡는다. */
+  const availW = orientation==='portrait' ? 190 : 277;
+  const availH = orientation==='portrait' ? 248 : 160;
+  const wmm = Math.min(availW, availH * iw / ih);
 
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${ivFname}</title>
+  let f = document.getElementById('printFrame');
+  if(!f){
+    f = document.createElement('iframe');
+    f.id = 'printFrame';
+    f.setAttribute('aria-hidden','true');
+    f.style.cssText = 'position:fixed;left:-10000px;top:0;width:794px;height:1123px;border:0;';
+    document.body.appendChild(f);
+  }
+  const d = f.contentWindow.document;
+  d.open();
+  d.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${ivFname}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-html,body{background:#fff;width:100%;height:100%;}
+html,body{background:#fff;width:100%;}
 body{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:8px;}
 img{display:block;max-width:96vw;max-height:96vh;width:auto;height:auto;}
 @media print{
-  /* margin:0 → 크롬·엣지는 머리글/바닥글을 아예 그리지 않는다 */
+  /* margin:0 → 크롬·엣지는 머리글/바닥글을 아예 그리지 않는다 (사파리는 무시함) */
   @page{size:A4 ${orientation};margin:0;}
-  html{height:auto;background:#fff;}
-  body{display:block;height:auto;min-height:0;padding:0;text-align:center;background:#fff;}
-  img{display:inline-block;max-width:${pageW}mm;max-height:${pageH}mm;
-      width:auto;height:auto;margin:22mm auto 0;
+  html,body{height:auto;background:#fff;}
+  body{display:block;min-height:0;padding:0;text-align:center;background:#fff;}
+  img{display:inline-block;width:${wmm.toFixed(1)}mm;height:auto;
+      max-width:none;max-height:none;margin:8mm auto 0;
       page-break-inside:avoid;page-break-after:avoid;break-inside:avoid;break-after:avoid;
       -webkit-print-color-adjust:exact;print-color-adjust:exact;}
 }
-</style></head><body>
-<img src="${ivDataURL}">
-<scr`+`ipt>window.onload=()=>setTimeout(()=>window.print(),200);<\/script>
-</body></html>`);
-  win.document.close();
+</style></head><body><img id="pimg" src="${ivDataURL}"></body></html>`);
+  d.close();
+
+  const go=()=>{
+    try{ f.contentWindow.focus(); f.contentWindow.print(); }
+    catch(e){ showToast('인쇄를 열지 못했습니다: '+e.message); }
+    // 포커스를 본 화면으로 되돌린다 (안 그러면 ESC 가 iframe 으로 먹힌다)
+    setTimeout(()=>{ try{ window.focus(); document.body.focus(); }catch(e){} }, 150);
+  };
+  const im = d.getElementById('pimg');
+  if(im && !im.complete){ im.onload=go; im.onerror=go; }
+  else { setTimeout(go, 120); }
 }
 
 // ── 토스트 ──
@@ -4111,10 +4136,143 @@ function resetAll(){
   $('firstVal').textContent='–';$('firstDesc').textContent='국고보조금의 20% 추가';
   const mb=$('mobAmt');if(mb)mb.textContent='차종 선택';
   $('iv').classList.remove('show');
+  bydClearSaved();
 }
 
+/* ══════════ 입력값 자동 저장 · 복원 ══════════
+   새로고침·앱 재시작·실수로 창을 닫아도 처음부터 다시 입력하지 않도록.
+   단, 자동으로 채우지는 않는다 — 앞 고객 값이 남은 채로 다음 견적을 짜면
+   잘못된 금액이 나갈 수 있으므로, 띠를 띄워 누를 때만 복원한다. */
+const BYD_SAVE_KEY='byd_quote_state_v1';
+const BYD_SAVE_IDS=['qCustName','regionSel','subNat','subLoc','subConv','subTotal','discountCost',
+  'acqTaxInput','bondDiscountInput','plateCost','deliveryCost','etcCost','cashDeposit','cashDate',
+  'instDeposit','downPctSel','instDownDirect','instDown','instPrincipalDirect','instMonthDirect','instRateDirect'];
+const BYD_CMP_MONTHS=[12,24,36,48,60];
+
+function bydCollect(){
+  const f={};
+  BYD_SAVE_IDS.forEach(id=>{const e=$(id); if(e) f[id]=e.value;});
+  const cmp={}; BYD_CMP_MONTHS.forEach(m=>{const c=$('cmp'+m); if(c) cmp[m]=c.checked;});
+  const prices={}; Object.keys(CARS).forEach(k=>prices[k]=CARS[k].trims.map(t=>t.price));
+  return {v:1, ts:Date.now(), S:{...S}, subChecks:{...subChecks}, bondMode:bondMode,
+          acqManual:acqManual, regInc:_regIncluded, fields:f, cmp:cmp, prices:prices};
+}
+
+let _bydSaveT=null;
+function bydSave(){
+  clearTimeout(_bydSaveT);
+  _bydSaveT=setTimeout(()=>{
+    try{
+      const st=bydCollect();
+      if(!st.S.carKey) return;              // 차종도 안 고른 상태는 저장하지 않는다
+      localStorage.setItem(BYD_SAVE_KEY, JSON.stringify(st));
+    }catch(e){}
+  }, 800);
+}
+['input','change','click'].forEach(ev=>document.addEventListener(ev, bydSave, true));
+
+function bydClearSaved(){
+  try{ localStorage.removeItem(BYD_SAVE_KEY); }catch(e){}
+  const bar=document.getElementById('bydRestoreBar'); if(bar) bar.remove();
+}
+
+function bydRestore(st){
+  try{
+    // 수기로 고친 트림 가격부터 되돌린다
+    if(st.prices) Object.keys(st.prices).forEach(k=>{
+      if(!CARS[k]) return;
+      st.prices[k].forEach((p,i)=>{ if(CARS[k].trims[i] && p>0) CARS[k].trims[i].price=p; });
+    });
+    const keys=Object.keys(CARS), idx=keys.indexOf(st.S.carKey);
+    if(idx<0) return false;
+    const carEl=document.querySelectorAll('.car-item')[idx];
+    if(!carEl) return false;
+    selectCar(st.S.carKey, carEl);
+    S.trimIdx=st.S.trimIdx||0; S.colorIdx=st.S.colorIdx||0; S.seatIdx=st.S.seatIdx||0;
+    renderTrims(); renderColors(); renderSeats();
+
+    const tabs=document.querySelectorAll('.pay-tab');
+    setPayMode(st.S.payMode||'cash', st.S.payMode==='installment'?tabs[1]:tabs[0]);
+
+    if(st.bondMode && $('bond-'+st.bondMode)) setBond(st.bondMode, $('bond-'+st.bondMode));
+
+    // 지역 자동입력을 먼저 돌린 뒤, 저장값으로 덮어쓴다
+    if($('regionSel')){ $('regionSel').value=(st.fields&&st.fields.regionSel)||''; onRegionChange(); }
+    ['conv','child2','child3','first'].forEach(k=>{ if(st.subChecks&&st.subChecks[k]&&!subChecks[k]) toggleSub(k); });
+    BYD_SAVE_IDS.forEach(id=>{ const e=$(id); if(e && st.fields && st.fields[id]!==undefined) e.value=st.fields[id]; });
+    acqManual=!!st.acqManual;
+
+    BYD_CMP_MONTHS.forEach(m=>{ const c=$('cmp'+m); if(c && st.cmp) c.checked=!!st.cmp[m]; });
+    onCmpChange();
+
+    setRegInc(!!st.regInc);
+    if($('downPctSel')){
+      $('downPctSel').value=(st.fields&&st.fields.downPctSel)||'0';
+      onDownPctChange();
+      if($('downPctSel').value==='direct' && $('instDownDirect')){
+        $('instDownDirect').value=(st.fields&&st.fields.instDownDirect)||'';
+        onInstDownChange();
+      }
+    }
+    if($('instPrincipalDirect')) $('instPrincipalDirect').value=(st.fields&&st.fields.instPrincipalDirect)||'';
+    calc();
+    return true;
+  }catch(e){ console.error(e); return false; }
+}
+
+function bydShowRestoreBar(){
+  let st=null;
+  try{ const raw=localStorage.getItem(BYD_SAVE_KEY); if(raw) st=JSON.parse(raw); }catch(e){}
+  if(!st || !st.S || !st.S.carKey || !CARS[st.S.carKey]) return;
+  const car=CARS[st.S.carKey];
+  const trim=car.trims[st.S.trimIdx]||car.trims[0];
+  const d=new Date(st.ts||Date.now());
+  const p2=n=>String(n).padStart(2,'0');
+  const when=`${p2(d.getMonth()+1)}.${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
+  const nm=(st.fields&&st.fields.qCustName)?st.fields.qCustName+' · ':'';
+
+  const bar=document.createElement('div');
+  bar.id='bydRestoreBar';
+  bar.style.cssText='position:fixed;left:50%;transform:translateX(-50%);top:12px;z-index:9997;'
+    +'display:flex;align-items:center;gap:8px;background:rgba(14,18,26,0.97);'
+    +'border:1px solid rgba(0,200,110,0.45);border-radius:12px;padding:9px 11px;'
+    +'box-shadow:0 8px 24px rgba(0,0,0,0.55);font-size:12px;color:#c8d4e4;max-width:92vw;';
+  const txt=document.createElement('span');
+  txt.style.cssText='white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+  const short=car.name.replace(/^BYD\s*/,'');
+  const label=trim.name.indexOf(short)>=0 ? trim.name : `${short} ${trim.name}`;
+  txt.textContent=`직전 입력 — ${nm}${label} · ${when}`;
+  const ok=document.createElement('button');
+  ok.textContent='불러오기';
+  ok.style.cssText='flex:0 0 auto;background:rgba(0,200,110,0.2);border:1px solid rgba(0,200,110,0.5);'
+    +'color:#00c86e;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;';
+  ok.onclick=()=>{ bar.remove(); showToast(bydRestore(st)?'직전 입력을 불러왔습니다 ✅':'불러오지 못했습니다'); };
+  const no=document.createElement('button');
+  no.textContent='✕';
+  no.style.cssText='flex:0 0 auto;background:transparent;border:1px solid rgba(255,255,255,0.15);'
+    +'color:#5a7090;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;';
+  no.onclick=()=>bar.remove();
+  bar.appendChild(txt); bar.appendChild(ok); bar.appendChild(no);
+  document.body.appendChild(bar);
+}
+
+/* ── 견적서 화면에서 나가는 길: ESC · 배경 클릭 ── */
+document.addEventListener('keydown', e=>{
+  if(e.key!=='Escape') return;
+  const iv=$('iv');
+  if(iv && iv.classList.contains('show')) ivClose();
+});
+
 // 페이지 로드 시 실행
-window.addEventListener('load', ()=>{ init(); try{ paintRegionMode(); }catch(e){} });
+window.addEventListener('load', ()=>{
+  init();
+  try{ paintRegionMode(); }catch(e){}
+  try{
+    const iv=$('iv');
+    if(iv) iv.addEventListener('click', e=>{ if(e.target===iv) ivClose(); });
+  }catch(e){}
+  try{ bydShowRestoreBar(); }catch(e){}
+});
 
 </script>
 
