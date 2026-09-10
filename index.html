@@ -697,7 +697,7 @@ input:-webkit-autofill{ -webkit-box-shadow:0 0 0 1000px var(--s2) inset; -webkit
   <div class="hd-btns">
     <button class="hd-btn" style="background:rgba(176,106,255,0.1);border-color:rgba(176,106,255,0.25);color:#b06aff;" onclick="openGuide()">❓ 사용법</button>
     <button class="hd-btn hd-btn-reset" onclick="resetAll()">↺ 초기화</button>
-    <button class="hd-btn hd-btn-save" onclick="openQuoteWindow()">💾 저장</button>
+    <button class="hd-btn hd-btn-save" onclick="saveQuotePDF()">📄 PDF</button>
     <button class="hd-btn hd-btn-print" onclick="openQuoteWindow()">🖨 출력</button>
     <span id="buildTag" style="align-self:center;font-size:9px;color:#4a5a70;letter-spacing:0.3px;padding-left:2px;"></span>
   </div>
@@ -1219,11 +1219,8 @@ input:-webkit-autofill{ -webkit-box-shadow:0 0 0 1000px var(--s2) inset; -webkit
     </div>
 
     <div class="q-actions">
-      <button class="btn-main btn-green" onclick="openQuoteWindow()">🖨 견적서 출력 / 저장</button>
-      <div class="btn-row">
-        <button class="btn-sub btn-pdf" onclick="openQuoteWindow()">📄 PDF</button>
-        <button class="btn-sub btn-img" onclick="openQuoteWindow()">🖼 이미지</button>
-      </div>
+      <button class="btn-main btn-green" onclick="openQuoteWindow()">🖨 견적서 출력 / 이미지 저장</button>
+      <button class="btn-sub btn-pdf" onclick="saveQuotePDF()" style="width:100%;">📄 PDF 저장</button>
     </div>
   </div>
 </div>
@@ -1246,8 +1243,7 @@ input:-webkit-autofill{ -webkit-box-shadow:0 0 0 1000px var(--s2) inset; -webkit
   <div class="iv-toolbar">
     <button class="btn-main btn-green" onclick="ivClose()" style="flex:0 0 auto;width:auto;padding:0 16px;height:42px;">✕ 닫기</button>
     <button class="btn-sub btn-img" id="ivSaveBtn" onclick="ivSave()" style="flex:1;">📥 이미지 저장</button>
-    <button class="btn-sub" onclick="ivShare()" style="flex:1;background:linear-gradient(135deg,#fee500,#f5c800);color:#391b1b;border:none;font-weight:700;">💬 공유하기</button>
-    <button class="btn-sub btn-pdf" onclick="ivPrint()" style="flex:0 0 auto;width:auto;padding:0 14px;">🖨</button>
+    <button class="btn-sub" onclick="ivShare()" style="flex:1;background:linear-gradient(135deg,#fee500,#f5c800);color:#391b1b;border:none;font-weight:700;">💬 공유 / 인쇄하기</button>
   </div>
   <p style="font-size:10px;color:var(--dim);text-align:center;">📱 모바일: 이미지 <b>길게 눌러</b> 저장 &nbsp;|&nbsp; 💬 공유 버튼으로 카카오톡·문자 전송</p>
   <img id="ivImg" src="" alt="BYD 견적서" style="max-width:480px;width:100%;border-radius:10px;">
@@ -1260,7 +1256,7 @@ input:-webkit-autofill{ -webkit-box-shadow:0 0 0 1000px var(--s2) inset; -webkit
     <span class="mob-bar-amt" id="mobAmt">차종 선택</span>
   </div>
   <div class="mob-bar-btns">
-    <button class="mob-btn mob-btn-b" onclick="openQuoteWindow()">🖼</button>
+    <button class="mob-btn mob-btn-b" onclick="saveQuotePDF()">📄</button>
     <button class="mob-btn mob-btn-g" onclick="openQuoteWindow()">🖨 출력</button>
   </div>
 </div>
@@ -1270,7 +1266,7 @@ input:-webkit-autofill{ -webkit-box-shadow:0 0 0 1000px var(--s2) inset; -webkit
 <script>
 /* 이 파일의 판(版). 깃허브에 올릴 때마다 이 값을 올린다. 화면 우측 상단에 표시되고,
    브라우저가 옛날 사본을 물고 있는지 스스로 확인하는 데도 쓴다. */
-const BUILD='2026.09.10-1';
+const BUILD='2026.09.10-2';
 
 // ╔══════════════════════════════════════════════════════════════════╗
 // ║          ★ 수정 전용 구역 — 여기만 고치면 됩니다 ★              ║
@@ -3859,27 +3855,88 @@ function drawCompareCanvas(ctx,W,pr,car,trim,color,carImg,months,rate,principal,
 function showOverlay(msg){$('overlayMsg').textContent=msg;$('overlay').classList.add('show');}
 function hideOverlay(){$('overlay').classList.remove('show');}
 
-async function openQuoteWindow(){
-  if(!S.carKey){showToast('차종을 먼저 선택하세요');return;}
-
-  // 비교 모드: 할부이고 2개 이상 개월 체크된 경우
+// 견적서 캔버스를 만든다 (출력·PDF 공통)
+async function buildQuoteImage(){
   const cmpMonths = S.payMode==='installment' ? getCmpMonths() : [];
   const isCompare = cmpMonths.length >= 2;
-
   showOverlay(isCompare ? `비교 견적서 생성 중... (${cmpMonths.join('/')}개월)` : '견적서 생성 중...');
+  const canvas = isCompare ? await renderCompareCanvas(cmpMonths) : await renderToCanvas();
+  ivDataURL = canvas.toDataURL('image/png');
+  ivFname   = getFileName()+(isCompare?'_개월비교':'');
+  hideOverlay();
+  return canvas;
+}
+
+async function openQuoteWindow(){
+  if(!S.carKey){showToast('차종을 먼저 선택하세요');return;}
   try{
-    let canvas;
-    if(isCompare){
-      canvas = await renderCompareCanvas(cmpMonths);
-    } else {
-      canvas = await renderToCanvas();
-    }
-    ivDataURL=canvas.toDataURL('image/png');
-    ivFname=getFileName()+(isCompare?'_개월비교':'');
-    hideOverlay();
+    await buildQuoteImage();
     $('ivImg').src=ivDataURL;
     $('iv').classList.add('show');
   }catch(e){hideOverlay();showToast('오류: '+e.message);console.error(e);}
+}
+
+/* ── PDF 한 장 만들기 ──────────────────────────────────────────────
+   외부 라이브러리를 쓰지 않는다. 견적서 이미지를 JPEG 로 바꾼 뒤
+   A4 한 장짜리 PDF 안에 그대로 넣는다. */
+function qBuildPDF(jpegDataURL, iw, ih){
+  const bin = atob(jpegDataURL.split(',')[1]);
+  const PW=595.28, PH=841.89, M=18;                 // A4 (pt)
+  const sc = Math.min((PW-M*2)/iw, (PH-M*2)/ih);
+  const w=iw*sc, h=ih*sc, x=(PW-w)/2, y=(PH-h)/2;
+  const f=n=>n.toFixed(2);
+  const content='q '+f(w)+' 0 0 '+f(h)+' '+f(x)+' '+f(y)+' cm /Im0 Do Q\n';
+  const off=[];
+  let pdf='%PDF-1.4\n%\xE2\xE3\xCF\xD3\n';
+  const put=(num, body)=>{ off[num]=pdf.length; pdf += num+' 0 obj\n'+body+'\nendobj\n'; };
+  put(1,'<</Type/Catalog/Pages 2 0 R>>');
+  put(2,'<</Type/Pages/Kids[3 0 R]/Count 1>>');
+  put(3,'<</Type/Page/Parent 2 0 R/MediaBox[0 0 '+f(PW)+' '+f(PH)+']'
+       +'/Resources<</XObject<</Im0 4 0 R>>/ProcSet[/PDF/ImageC]>>/Contents 5 0 R>>');
+  off[4]=pdf.length;
+  pdf += '4 0 obj\n<</Type/XObject/Subtype/Image/Width '+iw+'/Height '+ih
+       + '/ColorSpace/DeviceRGB/BitsPerComponent 8/Filter/DCTDecode/Length '+bin.length
+       + '>>\nstream\n'+bin+'\nendstream\nendobj\n';
+  off[5]=pdf.length;
+  pdf += '5 0 obj\n<</Length '+content.length+'>>\nstream\n'+content+'endstream\nendobj\n';
+  const xrefPos=pdf.length;
+  let xref='xref\n0 6\n0000000000 65535 f \n';
+  for(let i=1;i<=5;i++) xref += String(off[i]).padStart(10,'0')+' 00000 n \n';
+  pdf += xref+'trailer\n<</Size 6/Root 1 0 R>>\nstartxref\n'+xrefPos+'\n%%EOF';
+  const u=new Uint8Array(pdf.length);
+  for(let i=0;i<pdf.length;i++) u[i]=pdf.charCodeAt(i)&0xff;
+  return new Blob([u],{type:'application/pdf'});
+}
+
+async function saveQuotePDF(){
+  if(!S.carKey){showToast('차종을 먼저 선택하세요');return;}
+  try{
+    const canvas = await buildQuoteImage();
+    // PDF 안에는 JPEG 로 넣는다 (PNG 는 그대로 못 넣는다)
+    const flat=document.createElement('canvas');
+    flat.width=canvas.width; flat.height=canvas.height;
+    const cx=flat.getContext('2d');
+    cx.fillStyle='#ffffff'; cx.fillRect(0,0,flat.width,flat.height);
+    cx.drawImage(canvas,0,0);
+    const jpg=flat.toDataURL('image/jpeg',0.92);
+    const blob=qBuildPDF(jpg, flat.width, flat.height);
+    const name=ivFname+'.pdf';
+
+    if(qIsMobile() && navigator.share && navigator.canShare){
+      try{
+        const file=new File([blob],name,{type:'application/pdf'});
+        if(navigator.canShare({files:[file]})){
+          await navigator.share({files:[file],title:'BYD 견적서'});
+          return;
+        }
+      }catch(e){ if(e.name==='AbortError') return; }
+    }
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=name;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),5000);
+    showToast('PDF 저장 완료 ✅');
+  }catch(e){ hideOverlay(); showToast('PDF 오류: '+e.message); console.error(e); }
 }
 
 async function renderCompareCanvas(months){
@@ -3927,6 +3984,11 @@ function ivSave(){
 }
 
 async function ivShare(){
+  /* 맥·PC 는 공유 시트에 '프린트'가 없다 (이미지 공유는 에어드롭·메일뿐).
+     인쇄가 필요한 쪽이므로 곧장 인쇄로 보낸다.
+     아이폰·아이패드·안드로이드는 공유 시트에 프린트가 있어 그대로 간다. */
+  if(!qIsMobile()){ ivPrint(); return; }
+
   // dataURL → Blob 변환 (fetch 없이 atob 사용 → iOS Safari 호환)
   function dataURLtoBlob(dataURL){
     const arr=dataURL.split(',');
