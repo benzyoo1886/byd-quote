@@ -699,6 +699,7 @@ input:-webkit-autofill{ -webkit-box-shadow:0 0 0 1000px var(--s2) inset; -webkit
     <button class="hd-btn hd-btn-reset" onclick="resetAll()">↺ 초기화</button>
     <button class="hd-btn hd-btn-save" onclick="openQuoteWindow()">💾 저장</button>
     <button class="hd-btn hd-btn-print" onclick="openQuoteWindow()">🖨 출력</button>
+    <span id="buildTag" style="align-self:center;font-size:9px;color:#4a5a70;letter-spacing:0.3px;padding-left:2px;"></span>
   </div>
 </header>
 
@@ -1267,6 +1268,9 @@ input:-webkit-autofill{ -webkit-box-shadow:0 0 0 1000px var(--s2) inset; -webkit
 <div id="toast"></div>
 
 <script>
+/* 이 파일의 판(版). 깃허브에 올릴 때마다 이 값을 올린다. 화면 우측 상단에 표시되고,
+   브라우저가 옛날 사본을 물고 있는지 스스로 확인하는 데도 쓴다. */
+const BUILD='2026.09.10-1';
 
 // ╔══════════════════════════════════════════════════════════════════╗
 // ║          ★ 수정 전용 구역 — 여기만 고치면 됩니다 ★              ║
@@ -4272,7 +4276,45 @@ window.addEventListener('load', ()=>{
     if(iv) iv.addEventListener('click', e=>{ if(e.target===iv) ivClose(); });
   }catch(e){}
   try{ bydShowRestoreBar(); }catch(e){}
+  try{ const t=$('buildTag'); if(t) t.textContent='v'+BUILD; }catch(e){}
+  try{ bydCheckUpdate(); }catch(e){}
 });
+
+/* 브라우저가 옛날 사본을 물고 있는지 스스로 확인한다.
+   서버의 최신 파일에서 판 번호만 읽어 지금 화면의 것과 비교. */
+function bydCheckUpdate(){
+  if(!window.fetch || location.protocol==='file:') return;
+  setTimeout(()=>{
+    const base=location.href.split('#')[0].split('?')[0];
+    fetch(base+'?cb='+Date.now(), {cache:'no-store'})
+      .then(r=>r.ok?r.text():null)
+      .then(t=>{
+        if(!t) return;
+        const m=t.match(/BUILD='([0-9.\-]+)'/);
+        if(!m || m[1]===BUILD) return;
+        const bar=document.createElement('div');
+        bar.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:9997;'
+          +'display:flex;align-items:center;gap:10px;background:rgba(14,18,26,0.97);'
+          +'border:1px solid rgba(255,190,61,0.5);border-radius:12px;padding:10px 12px;'
+          +'box-shadow:0 8px 24px rgba(0,0,0,0.55);font-size:12px;color:#c8d4e4;max-width:92vw;';
+        const tx=document.createElement('span');
+        tx.style.cssText='white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+        tx.textContent=`새 판이 있습니다 — v${m[1]} (지금 v${BUILD})`;
+        const go=document.createElement('button');
+        go.textContent='새로 받기';
+        go.style.cssText='flex:0 0 auto;background:rgba(255,190,61,0.2);border:1px solid rgba(255,190,61,0.55);'
+          +'color:#ffbe3d;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;';
+        go.onclick=()=>{ location.replace(base+'?v='+Date.now()); };
+        const no=document.createElement('button');
+        no.textContent='✕';
+        no.style.cssText='flex:0 0 auto;background:transparent;border:1px solid rgba(255,255,255,0.15);'
+          +'color:#5a7090;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;';
+        no.onclick=()=>bar.remove();
+        bar.appendChild(tx); bar.appendChild(go); bar.appendChild(no);
+        document.body.appendChild(bar);
+      }).catch(()=>{});
+  }, 1500);
+}
 
 </script>
 
@@ -4393,28 +4435,15 @@ window.addEventListener('load', ()=>{
   const manifestLink = document.getElementById('pwaManifest');
   if(manifestLink) manifestLink.href = manifestURL;
 
-  // Service Worker 등록 (오프라인 캐시)
-  if('serviceWorker' in navigator){
-    // SW를 inline Blob으로 등록
-    const swCode = `
-const CACHE = 'byd-quote-v1';
-const ASSETS = ['./', './index.html'];
-self.addEventListener('install', e=>{
-  e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS).catch(()=>{})));
-  self.skipWaiting();
-});
-self.addEventListener('activate', e=>{
-  e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));
-  self.clients.claim();
-});
-self.addEventListener('fetch', e=>{
-  e.respondWith(
-    caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>caches.match('./')))
-  );
-});`;
-    const swBlob = new Blob([swCode],{type:'application/javascript'});
-    const swURL  = URL.createObjectURL(swBlob);
-    navigator.serviceWorker.register(swURL,{scope:'./'}).catch(()=>{});
+  /* 예전에는 서비스워커로 오프라인 캐시를 걸었다. 그런데 그 캐시가 먼저 응답하는
+     방식(cache-first)이라, 깃허브에 새 파일을 올려도 폰이 옛날 사본을 계속 보여줬다.
+     등록을 없애고, 이미 깔린 것과 캐시는 지운다. */
+  if('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations){
+    navigator.serviceWorker.getRegistrations()
+      .then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});
+  }
+  if(window.caches && caches.keys){
+    caches.keys().then(ks=>ks.forEach(k=>caches.delete(k))).catch(()=>{});
   }
 })();
 
