@@ -1267,7 +1267,7 @@ input:-webkit-autofill{ -webkit-box-shadow:0 0 0 1000px var(--s2) inset; -webkit
 <script>
 /* 이 파일의 판(版). 깃허브에 올릴 때마다 이 값을 올린다. 화면 우측 상단에 표시되고,
    브라우저가 옛날 사본을 물고 있는지 스스로 확인하는 데도 쓴다. */
-const BUILD='2026.09.11-2';
+const BUILD='2026.09.11-3';
 
 // ╔══════════════════════════════════════════════════════════════════╗
 // ║          ★ 수정 전용 구역 — 여기만 고치면 됩니다 ★              ║
@@ -4131,12 +4131,17 @@ async function ivPrintMode(){
 function ivPrintDoc(src, iw, ih){
   if(!src){showToast('견적서를 먼저 만들어 주세요');return;}
   const orientation = ih >= iw ? 'portrait' : 'landscape';
-  /* 사파리는 @page{margin:0} 을 무시하고 머리글·바닥글을 넣는다.
-     max-width/max-height 를 같이 걸면 mm 높이 제한을 무시해 2페이지가 된다.
-     그래서 비율로 가로 폭을 mm 로 직접 계산해 한 값만 준다. */
-  const availW = orientation==='portrait' ? 190 : 277;
-  const availH = orientation==='portrait' ? 248 : 160;
-  const wmm = Math.min(availW, availH * iw / ih);
+  /* 여백 규칙
+     - 좌우를 먼저 고정한다 (각 20mm). 견적서 종류가 달라도 폭이 같아야 서류로 보인다.
+     - 세로가 넘치면 그때만 높이에 맞춰 줄인다.
+     - 남는 세로 공간은 위아래로 나눠 가운데 정렬. 아래만 비는 것을 막는다.
+     세로 예산 248mm 는 사파리가 제멋대로 넣는 머리글·바닥글까지 감안한 값이다. */
+  const PW = orientation==='portrait' ? 210 : 297;
+  const PH = orientation==='portrait' ? 297 : 210;
+  const SIDE = 20, BUDGET_H = orientation==='portrait' ? 248 : 160;
+  const wmm = Math.min(PW - SIDE*2, BUDGET_H * iw / ih);
+  const hmm = wmm * ih / iw;
+  const topmm = Math.max(10, (PH - hmm) / 2);
 
   let f = document.getElementById('printFrame');
   if(!f){
@@ -4159,7 +4164,7 @@ img{display:block;max-width:96vw;max-height:96vh;width:auto;height:auto;}
   html,body{height:auto;background:#fff;}
   body{display:block;min-height:0;padding:0;text-align:center;background:#fff;}
   img{display:inline-block;width:${wmm.toFixed(1)}mm;height:auto;
-      max-width:none;max-height:none;margin:8mm auto 0;
+      max-width:none;max-height:none;margin:${topmm.toFixed(1)}mm auto 0;
       page-break-inside:avoid;page-break-after:avoid;break-inside:avoid;break-after:avoid;
       -webkit-print-color-adjust:exact;print-color-adjust:exact;}
 }
